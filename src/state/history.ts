@@ -15,6 +15,14 @@ export interface HistoryEntry {
   rosterNames: string[];
   /** Sim seed for reproducibility. */
   seed: number;
+  /** Solo: drafted entry ids in PG/SG/SF/PF/C order — lets the run be reopened. */
+  soloRosterIds?: string[];
+  /** Head-to-head reopen data. */
+  h2h?: {
+    names: [string, string];
+    /** Entry ids in PG/SG/SF/PF/C order, per team. */
+    rosterIds: [string[], string[]];
+  };
 }
 
 const KEY = 'hardwoodgm.history.v1';
