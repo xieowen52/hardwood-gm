@@ -28,10 +28,20 @@ export interface DraftStateBase {
   usedComboKeys: string[];
 }
 
+/**
+ * Two independent re-roll tokens per game: TEAM re-spins the franchise
+ * (keeping the decade), ERA re-spins the decade (keeping the franchise).
+ * Both can be burned in the same turn for a full re-spin.
+ */
+export interface RerollTokens {
+  team: number;
+  era: number;
+}
+
 export interface SoloDraftState extends DraftStateBase {
   mode: 'classic' | 'hoopiq';
   roster: Roster;
-  rerollsLeft: number;
+  rerollsLeft: RerollTokens;
 }
 
 export interface H2HDraftState extends DraftStateBase {
@@ -43,7 +53,7 @@ export interface H2HDraftState extends DraftStateBase {
   picker: 0 | 1;
   /** 0 = first pick of the round, 1 = second. */
   pickInRound: 0 | 1;
-  rerollsLeft: [number, number];
+  rerollsLeft: [RerollTokens, RerollTokens];
 }
 
 export type DraftState = SoloDraftState | H2HDraftState;
@@ -56,7 +66,7 @@ export function initialSolo(mode: 'classic' | 'hoopiq'): SoloDraftState {
     combo: null,
     usedComboKeys: [],
     roster: emptyRoster(),
-    rerollsLeft: 1,
+    rerollsLeft: { team: 1, era: 1 },
   };
 }
 
@@ -72,7 +82,10 @@ export function initialH2H(names: [string, string], statsVisible: boolean): H2HD
     rosters: [emptyRoster(), emptyRoster()],
     picker: 0,
     pickInRound: 0,
-    rerollsLeft: [1, 1],
+    rerollsLeft: [
+      { team: 1, era: 1 },
+      { team: 1, era: 1 },
+    ],
   };
 }
 
@@ -124,8 +137,8 @@ export function drawCombo(
   return drawn;
 }
 
-/** Re-roll flavors: full spin, same era different team, same team different era. */
-export type RerollKind = 'both' | 'team' | 'era';
+/** Re-roll flavors: TEAM = same era different franchise, ERA = same franchise different decade. */
+export type RerollKind = 'team' | 'era';
 
 /**
  * Draw a combo for a constrained re-roll, or null when the dataset has no
@@ -143,8 +156,8 @@ export function drawRerollCombo(
 
   const matches = (c: FranchiseDecadeCombo): boolean => {
     if (c.key === current.key) return false;
-    if (kind === 'team' && c.decade !== current.decade) return false;
-    if (kind === 'era' && c.franchiseId !== current.franchiseId) return false;
+    if (kind === 'team' && (c.decade !== current.decade || c.franchiseId === current.franchiseId)) return false;
+    if (kind === 'era' && (c.franchiseId !== current.franchiseId || c.decade === current.decade)) return false;
     return availablePlayers(state, c).length >= need;
   };
 
@@ -157,7 +170,7 @@ export function drawRerollCombo(
 
 export type DraftAction =
   | { type: 'spun'; combo: FranchiseDecadeCombo }
-  | { type: 'reroll'; combo: FranchiseDecadeCombo }
+  | { type: 'reroll'; combo: FranchiseDecadeCombo; kind: RerollKind }
   | { type: 'pick'; player: PlayerEntry; position: Position }
   | { type: 'swap'; a: Position; b: Position; team?: 0 | 1 };
 
@@ -181,14 +194,18 @@ export function draftReducer(state: DraftState, action: DraftAction): DraftState
     }
 
     case 'reroll': {
-      // Allowed during the pick phase, before any pick this round.
+      // Allowed during the pick phase, before any pick this round. Each
+      // token (team / era) is independent — both can burn in one turn.
       if (state.phase !== 'pick' || state.combo === null) return state;
       if (state.mode === 'h2h') {
         if (state.pickInRound !== 0) return state;
         const picker = state.picker;
-        if (state.rerollsLeft[picker] < 1) return state;
-        const rerolls: [number, number] = [...state.rerollsLeft];
-        rerolls[picker] -= 1;
+        if (state.rerollsLeft[picker][action.kind] < 1) return state;
+        const rerolls: [RerollTokens, RerollTokens] = [
+          { ...state.rerollsLeft[0] },
+          { ...state.rerollsLeft[1] },
+        ];
+        rerolls[picker][action.kind] -= 1;
         return {
           ...state,
           rerollsLeft: rerolls,
@@ -196,10 +213,10 @@ export function draftReducer(state: DraftState, action: DraftAction): DraftState
           usedComboKeys: [...state.usedComboKeys, action.combo.key],
         };
       }
-      if (state.rerollsLeft < 1) return state;
+      if (state.rerollsLeft[action.kind] < 1) return state;
       return {
         ...state,
-        rerollsLeft: state.rerollsLeft - 1,
+        rerollsLeft: { ...state.rerollsLeft, [action.kind]: state.rerollsLeft[action.kind] - 1 },
         combo: action.combo,
         usedComboKeys: [...state.usedComboKeys, action.combo.key],
       };
@@ -267,11 +284,14 @@ export function draftReducer(state: DraftState, action: DraftAction): DraftState
   }
 }
 
-/** Can the current picker use a re-roll right now? */
-export function canReroll(state: DraftState): boolean {
+/** The current picker's remaining tokens. */
+export function rerollTokens(state: DraftState): RerollTokens {
+  return state.mode === 'h2h' ? state.rerollsLeft[state.picker] : state.rerollsLeft;
+}
+
+/** Can the current picker use the given re-roll token right now? */
+export function canReroll(state: DraftState, kind: RerollKind): boolean {
   if (state.phase !== 'pick') return false;
-  if (state.mode === 'h2h') {
-    return state.pickInRound === 0 && state.rerollsLeft[state.picker] > 0;
-  }
-  return state.rerollsLeft > 0;
+  if (state.mode === 'h2h' && state.pickInRound !== 0) return false;
+  return rerollTokens(state)[kind] > 0;
 }

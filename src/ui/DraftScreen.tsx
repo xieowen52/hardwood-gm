@@ -13,6 +13,7 @@ import {
   draftReducer,
   drawCombo,
   drawRerollCombo,
+  rerollTokens,
   ROUNDS,
   type DraftState,
   type RerollKind,
@@ -31,18 +32,12 @@ interface DraftScreenProps {
 interface PendingSpin {
   combo: FranchiseDecadeCombo;
   action: 'spun' | 'reroll';
+  kind?: RerollKind;
 }
-
-const REROLL_OPTIONS: { kind: RerollKind; label: string; hint: string }[] = [
-  { kind: 'both', label: 'New team & era', hint: 'full re-spin' },
-  { kind: 'team', label: 'Same era, new team', hint: 'keep the decade' },
-  { kind: 'era', label: 'Same team, new era', hint: 'keep the franchise' },
-];
 
 export function DraftScreen({ initial, onDone, onQuit }: DraftScreenProps) {
   const [state, dispatch] = useReducer(draftReducer, initial);
   const [pending, setPending] = useState<PendingSpin | null>(null);
-  const [rerollOpen, setRerollOpen] = useState(false);
   const doneRef = useRef(false);
 
   // Auto-draw whenever a round enters its spin phase.
@@ -61,18 +56,22 @@ export function DraftScreen({ initial, onDone, onQuit }: DraftScreenProps) {
   }, [state, onDone]);
 
   const reroll = (kind: RerollKind) => {
-    setRerollOpen(false);
-    if (!canReroll(state) || pending !== null) return;
+    if (!canReroll(state, kind) || pending !== null) return;
     const combo = drawRerollCombo(state, COMBOS, kind);
-    if (combo) setPending({ combo, action: 'reroll' });
+    if (combo) setPending({ combo, action: 'reroll', kind });
   };
 
   const showStats = state.mode === 'classic' || (state.mode === 'h2h' && state.statsVisible);
   const activeRoster = state.mode === 'h2h' ? state.rosters[state.picker] : state.roster;
   const pickerName = state.mode === 'h2h' ? state.names[state.picker] : null;
-  const rerollsLeft =
-    state.mode === 'h2h' ? state.rerollsLeft[state.picker] : state.rerollsLeft;
-  const rerollReady = canReroll(state) && pending === null;
+  const tokens = rerollTokens(state);
+  const rerollState = (kind: RerollKind) => {
+    const usable = canReroll(state, kind) && pending === null;
+    const hasAlternative = usable && drawRerollCombo(state, COMBOS, kind, () => 0) !== null;
+    return { usable, hasAlternative };
+  };
+  const teamRoll = rerollState('team');
+  const eraRoll = rerollState('era');
 
   return (
     <div className="screen draft-screen">
@@ -82,34 +81,31 @@ export function DraftScreen({ initial, onDone, onQuit }: DraftScreenProps) {
           Round {Math.min(state.round + 1, ROUNDS)} <span className="muted">/ {ROUNDS}</span>
           {pickerName && <span className="picker-name"> — {pickerName} on the clock</span>}
         </h2>
-        <div className="reroll-wrap">
+        <div className="reroll-buttons">
           <button
             className="btn"
-            disabled={!rerollReady}
-            onClick={() => setRerollOpen((open) => !open)}
-            title="Spin again — choose what to keep (uses your one token)"
+            disabled={!teamRoll.usable || !teamRoll.hasAlternative}
+            onClick={() => reroll('team')}
+            title={
+              teamRoll.hasAlternative || !teamRoll.usable
+                ? 'New franchise, same decade (one token per game)'
+                : 'No other franchise has a pool in this decade'
+            }
           >
-            🎲 Re-roll ({rerollsLeft} left)
+            🔁 New team ({tokens.team})
           </button>
-          {rerollOpen && rerollReady && (
-            <div className="reroll-menu">
-              {REROLL_OPTIONS.map((opt) => {
-                const available = drawRerollCombo(state, COMBOS, opt.kind, () => 0) !== null;
-                return (
-                  <button
-                    key={opt.kind}
-                    className="reroll-option"
-                    disabled={!available}
-                    title={available ? opt.hint : 'No alternative pool available in this dataset'}
-                    onClick={() => reroll(opt.kind)}
-                  >
-                    <strong>{opt.label}</strong>
-                    <span className="muted">{available ? opt.hint : 'unavailable'}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <button
+            className="btn"
+            disabled={!eraRoll.usable || !eraRoll.hasAlternative}
+            onClick={() => reroll('era')}
+            title={
+              eraRoll.hasAlternative || !eraRoll.usable
+                ? 'New decade, same franchise (one token per game)'
+                : 'This franchise has no pool in another decade'
+            }
+          >
+            📅 New era ({tokens.era})
+          </button>
         </div>
       </header>
 
@@ -119,7 +115,11 @@ export function DraftScreen({ initial, onDone, onQuit }: DraftScreenProps) {
             <Wheel
               target={pending.combo}
               onSettled={() => {
-                dispatch({ type: pending.action, combo: pending.combo });
+                if (pending.action === 'reroll') {
+                  dispatch({ type: 'reroll', combo: pending.combo, kind: pending.kind ?? 'team' });
+                } else {
+                  dispatch({ type: 'spun', combo: pending.combo });
+                }
                 setPending(null);
               }}
             />

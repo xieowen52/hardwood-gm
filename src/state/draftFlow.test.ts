@@ -34,9 +34,15 @@ function playDraft(start: DraftState, seed: number, useReroll: boolean): DraftSt
     }
 
     // phase 'pick'
-    if (useReroll && canReroll(state) && rng() < 0.3) {
-      state = draftReducer(state, { type: 'reroll', combo: drawCombo(state, COMBOS, rng) });
-      continue;
+    if (useReroll && rng() < 0.3) {
+      const kind = rng() < 0.5 ? 'team' : 'era';
+      if (canReroll(state, kind)) {
+        const combo = drawRerollCombo(state, COMBOS, kind, rng);
+        if (combo) {
+          state = draftReducer(state, { type: 'reroll', combo, kind });
+          continue;
+        }
+      }
     }
     const combo = state.combo;
     expect(combo).not.toBeNull();
@@ -66,11 +72,39 @@ describe('classic draft flow', () => {
     }
   });
 
-  it('consumes at most one re-roll', () => {
+  it('each token can be used at most once', () => {
     const final = playDraft(initialSolo('classic'), 42, true);
     if (final.mode === 'h2h') throw new Error('unexpected mode');
-    expect(final.rerollsLeft).toBeGreaterThanOrEqual(0);
-    expect(final.rerollsLeft).toBeLessThanOrEqual(1);
+    for (const kind of ['team', 'era'] as const) {
+      expect(final.rerollsLeft[kind]).toBeGreaterThanOrEqual(0);
+      expect(final.rerollsLeft[kind]).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('both tokens can burn in the same turn (team then era)', () => {
+    let state: DraftState = initialSolo('classic');
+    const rng = mulberry32(77);
+    state = draftReducer(state, { type: 'spun', combo: drawCombo(state, COMBOS, rng) });
+
+    // Force a combo whose franchise has another decade in the sample data.
+    const bos1960 = COMBOS.find((c) => c.key === '1960-BOS')!;
+    state = { ...state, combo: bos1960 };
+
+    const teamCombo = drawRerollCombo(state, COMBOS, 'team', rng);
+    expect(teamCombo).not.toBeNull();
+    state = draftReducer(state, { type: 'reroll', combo: teamCombo!, kind: 'team' });
+    if (state.mode === 'h2h') throw new Error('unexpected mode');
+    expect(state.rerollsLeft).toEqual({ team: 0, era: 1 });
+    expect(canReroll(state, 'team')).toBe(false);
+
+    const eraCombo = drawRerollCombo(state, COMBOS, 'era', rng);
+    if (eraCombo) {
+      state = draftReducer(state, { type: 'reroll', combo: eraCombo, kind: 'era' });
+      if (state.mode === 'h2h') throw new Error('unexpected mode');
+      expect(state.rerollsLeft).toEqual({ team: 0, era: 0 });
+      expect(eraCombo.franchiseId).toBe(teamCombo!.franchiseId);
+      expect(eraCombo.decade).not.toBe(teamCombo!.decade);
+    }
   });
 });
 
@@ -82,16 +116,16 @@ describe('constrained re-rolls', () => {
     return state;
   }
 
-  it('team-only re-roll keeps the decade', () => {
+  it('team re-roll keeps the decade and changes the franchise', () => {
     const state = stateWithCombo();
     const next = drawRerollCombo(state, COMBOS, 'team', mulberry32(1));
     if (next !== null) {
       expect(next.decade).toBe(state.combo!.decade);
-      expect(next.key).not.toBe(state.combo!.key);
+      expect(next.franchiseId).not.toBe(state.combo!.franchiseId);
     }
   });
 
-  it('era-only re-roll keeps the franchise', () => {
+  it('era re-roll keeps the franchise and changes the decade', () => {
     // 1990s Chicago has no other sample decade; use a franchise that does.
     let state = stateWithCombo();
     const bos1960 = COMBOS.find((c) => c.key === '1960-BOS')!;
@@ -102,13 +136,12 @@ describe('constrained re-rolls', () => {
     expect(next!.decade).not.toBe(1960);
   });
 
-  it('full re-roll never returns the current combo', () => {
+  it('returns null when no alternative satisfies the constraint', () => {
+    // A wheel with a single combo has no alternative for either token.
     const state = stateWithCombo();
-    for (let i = 0; i < 20; i++) {
-      const next = drawRerollCombo(state, COMBOS, 'both', mulberry32(i));
-      expect(next).not.toBeNull();
-      expect(next!.key).not.toBe(state.combo!.key);
-    }
+    const lonelyWheel = [state.combo!];
+    expect(drawRerollCombo(state, lonelyWheel, 'team', mulberry32(1))).toBeNull();
+    expect(drawRerollCombo(state, lonelyWheel, 'era', mulberry32(1))).toBeNull();
   });
 });
 
