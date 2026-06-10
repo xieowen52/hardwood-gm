@@ -38,18 +38,30 @@
  *   the same rows. With player rows only, team-level rates are estimated from
  *   per-minute aggregates: a team plays 240 player-minutes per game, so
  *   e.g. league PPG = total points / total minutes * 240. Pace is estimated
- *   as possessions = FGA + 0.44*FTA + TOV (no offensive-rebound term — ORB
- *   isn't a required column — so it runs slightly hot, consistently across
- *   eras, which is what era normalization needs).
+ *   as possessions = FGA + 0.44*FTA + TOV − estimated ORB (ORB isn't a
+ *   required column, so it's approximated as 30% of missed field goals),
+ *   which lands close to the published pace convention.
+ * - DATA-QUALITY GUARDRAILS: box scores before 1971 are incomplete in most
+ *   game-log sources (missing minutes/attempts), so player entries ending
+ *   before 1971 are dropped, league context for any season computing to an
+ *   implausible value is replaced by interpolated published league averages,
+ *   and the curated sample pools for the dropped decades are blended back in
+ *   so the classic eras stay playable.
  * - Usage, when usg_pct is missing, is estimated the standard way:
  *   USG% = 100 * (FGA + 0.44*FTA + TOV) * (240/5) / (MP * teamPossPerGame).
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+// Pure-data import (no React): the curated sample pools blended in for
+// decades the source can't cover (see header).
+import { SAMPLE_DATASET } from '../src/data/sample';
+
+/** Entries whose span ends before this season are dropped (incomplete logs). */
+const RELIABLE_FROM = 1971;
 
 // ---------------------------------------------------------------------------
-// Types duplicated from src/data/types.ts (kept dependency-free so the script
-// runs with plain tsx and never drags app code into Node).
+// Types duplicated from src/data/types.ts (kept otherwise dependency-free so
+// the script runs with plain tsx).
 // ---------------------------------------------------------------------------
 
 type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
@@ -227,6 +239,8 @@ const HISTORICAL_CODES: Record<string, string> = {
   SEA: 'OKC',
   // 76ers: Syracuse
   SYR: 'PHI',
+  // Spurs: alternate San Antonio code used by some sources
+  SAN: 'SAS',
   // Suns alternate code
   PHX: 'PHO',
   // Kings: Rochester/Cincinnati/Kansas City
@@ -400,23 +414,30 @@ function main(): void {
     const minutes = mp > 0 ? mp : sum((r) => r.g) * 24;
     const perTeamGame = (total: number) => (total / minutes) * 240;
     const fga = sum((r) => r.fga);
+    const fgm = sum((r) => r.fg);
     const fta = sum((r) => r.fta);
     const tpa = sum((r) => r.tpa);
     const tov = sum((r) => r.tov);
     // Pre-1978 files have no turnovers; estimate possessions without them and
     // add a flat 16% — roughly the league turnover rate of that era.
     const anyTov = list.some((r) => r.hasTov);
-    const possRaw = fga + 0.44 * fta + (anyTov ? tov : (fga + 0.44 * fta) * 0.16);
-    leagueContext.push({
+    // ORB isn't a required column: estimate offensive boards as 30% of missed
+    // shots so the pace estimate matches the published convention.
+    const orbEst = 0.3 * (fga - fgm);
+    const possRaw =
+      fga + 0.44 * fta - orbEst + (anyTov ? tov : (fga + 0.44 * fta) * 0.16);
+    const computed: LeagueSeasonContext = {
       season,
       pace: round(perTeamGame(possRaw), 1),
       ppg: round(perTeamGame(sum((r) => r.pts)), 1),
-      fgPct: ratio(sum((r) => r.fg), fga),
+      fgPct: ratio(fgm, fga),
       tpPct: ratio(sum((r) => r.tp), tpa),
       ftPct: ratio(sum((r) => r.ft), fta),
       tpaPerGame: round(perTeamGame(tpa), 1),
       ftaPerGame: round(perTeamGame(fta), 1),
-    });
+    };
+    // Incomplete old logs produce nonsense — fall back to published averages.
+    leagueContext.push(implausible(computed) ? anchorContext(season) : computed);
   }
   const paceBySeason = new Map(leagueContext.map((c) => [c.season, c.pace]));
 
@@ -477,9 +498,13 @@ function main(): void {
       usageEstimated = true;
       const seasonsPace =
         list.reduce((s, r) => s + (paceBySeason.get(r.season) ?? 95) * r.g, 0) / games;
+      // The published USG% convention divides by RAW team possessions
+      // (FGA + 0.44·FTA + TOV, no offensive-rebound subtraction), while our
+      // stored pace is ORB-corrected — undo that correction here (~÷0.87).
+      const rawPace = seasonsPace / 0.87;
       const possUsed = fga + 0.44 * fta + tov;
       const mpg = mp / games;
-      usagePct = round(Math.min(50, Math.max(5, (100 * (possUsed / games) * 48) / (mpg * seasonsPace))), 1);
+      usagePct = round(Math.min(50, Math.max(5, (100 * (possUsed / games) * 48) / (mpg * rawPace))), 1);
     }
 
     const seasons = list.map((r) => r.season);
@@ -510,6 +535,43 @@ function main(): void {
     });
   }
 
+  // ── data-quality guardrails ──────────────────────────────────────────────
+  // Drop entries the source can't support: spans ending before box scores
+  // are complete, or impossible rates from partial rows.
+  const before = players.length;
+  const reliable = players.filter(
+    (p) =>
+      p.to >= RELIABLE_FROM &&
+      p.stats.fgPct <= 0.95 &&
+      p.stats.tpPct <= 1 &&
+      p.stats.ftPct <= 1 &&
+      p.stats.fga >= 1,
+  );
+  const dropped = before - reliable.length;
+  players.length = 0;
+  players.push(...reliable);
+
+  // Blend the curated sample pools for decades the source can't cover at
+  // all (typically the 1950s/60s), so the classic eras stay playable.
+  const presentDecades = new Set(players.map((p) => p.decade));
+  const usedIdSet = new Set(players.map((p) => p.id));
+  const blended = SAMPLE_DATASET.players.filter(
+    (p) => !presentDecades.has(p.decade) && !usedIdSet.has(p.id),
+  );
+  players.push(...blended);
+
+  // Make sure every season any entry spans has context (anchor fallback).
+  const covered = new Set(leagueContext.map((c) => c.season));
+  for (const p of players) {
+    for (let s = p.from; s <= p.to; s++) {
+      if (!covered.has(s)) {
+        covered.add(s);
+        leagueContext.push(anchorContext(s));
+      }
+    }
+  }
+  leagueContext.sort((a, b) => a.season - b.season);
+
   players.sort((a, b) => a.id.localeCompare(b.id));
 
   const dataset = {
@@ -533,6 +595,7 @@ function main(): void {
   fs.writeFileSync(opts.out, JSON.stringify(dataset, null, 2));
 
   console.log(`ingest: ${seasonRows.length} season rows parsed (${skipped} skipped)`);
+  console.log(`ingest: dropped ${dropped} unreliable entries (pre-${RELIABLE_FROM} spans / partial rows); blended ${blended.length} curated sample entries for missing decades`);
   console.log(`ingest: ${players.length} player entries across ${comboCounts.size} franchise-decade combos`);
   console.log(`ingest: ${eligible.length} combos have >= 8 players and will appear on the wheel`);
   if (eligible.length === 0) {
@@ -557,6 +620,67 @@ function round(v: number, places: number): number {
 
 function ratio(makes: number, attempts: number): number {
   return attempts > 0 ? round(makes / attempts, 3) : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Published league averages (anchor seasons, linearly interpolated) — the
+// fallback context for seasons whose computed values are implausible.
+// [season, pace, ppg, fgPct, tpPct, ftPct, tpaPerGame, ftaPerGame]
+// ---------------------------------------------------------------------------
+type Anchor = [number, number, number, number, number, number, number, number];
+
+const ANCHORS: Anchor[] = [
+  [1947, 95, 67.8, 0.279, 0, 0.632, 0, 26.0],
+  [1956, 102, 99.0, 0.387, 0, 0.745, 0, 36.0],
+  [1960, 126, 115.3, 0.41, 0, 0.735, 0, 36.0],
+  [1965, 119, 110.9, 0.426, 0, 0.722, 0, 33.0],
+  [1970, 116, 116.7, 0.46, 0, 0.748, 0, 32.0],
+  [1975, 106, 102.6, 0.457, 0, 0.765, 0, 27.0],
+  [1980, 103, 109.3, 0.481, 0.28, 0.764, 2.8, 26.0],
+  [1985, 102, 110.8, 0.491, 0.282, 0.764, 3.1, 27.0],
+  [1990, 98, 107.0, 0.476, 0.331, 0.764, 6.6, 27.0],
+  [1995, 92.9, 101.4, 0.466, 0.359, 0.737, 15.3, 25.9],
+  [2000, 93.1, 97.5, 0.449, 0.353, 0.75, 13.7, 24.5],
+  [2005, 90.9, 97.2, 0.447, 0.356, 0.756, 15.8, 25.7],
+  [2010, 92.7, 100.4, 0.461, 0.355, 0.759, 18.1, 24.5],
+  [2015, 93.9, 100.0, 0.449, 0.35, 0.75, 22.4, 22.8],
+  [2020, 100.3, 111.8, 0.46, 0.358, 0.773, 34.1, 23.1],
+  [2026, 98.8, 113.8, 0.468, 0.36, 0.782, 37.5, 21.7],
+];
+
+function anchorContext(season: number): LeagueSeasonContext {
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const first = ANCHORS[0]!;
+  const last = ANCHORS[ANCHORS.length - 1]!;
+  const s = Math.min(Math.max(season, first[0]), last[0]);
+  let lo = first;
+  let hi = last;
+  for (let i = 0; i < ANCHORS.length - 1; i++) {
+    const a = ANCHORS[i]!;
+    const b = ANCHORS[i + 1]!;
+    if (s >= a[0] && s <= b[0]) { lo = a; hi = b; break; }
+  }
+  const t = hi[0] === lo[0] ? 0 : (s - lo[0]) / (hi[0] - lo[0]);
+  const threes = season >= 1980;
+  return {
+    season,
+    pace: round(lerp(lo[1], hi[1], t), 1),
+    ppg: round(lerp(lo[2], hi[2], t), 1),
+    fgPct: round(lerp(lo[3], hi[3], t), 3),
+    tpPct: threes ? round(lerp(lo[4], hi[4], t), 3) : 0,
+    ftPct: round(lerp(lo[5], hi[5], t), 3),
+    tpaPerGame: threes ? round(lerp(lo[6], hi[6], t), 1) : 0,
+    ftaPerGame: round(lerp(lo[7], hi[7], t), 1),
+  };
+}
+
+/** Computed context that can't be right (incomplete source rows). */
+function implausible(c: LeagueSeasonContext): boolean {
+  return (
+    c.pace < 85 || c.pace > 135 ||
+    c.ppg < 80 || c.ppg > 135 ||
+    c.fgPct < 0.32 || c.fgPct > 0.56
+  );
 }
 
 main();
