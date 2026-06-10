@@ -15,15 +15,20 @@ history lives in `localStorage`.
 ## Game modes
 
 - **Classic** — five rounds; each round the wheel draws a franchise-decade pool and
-  you draft one player (full stat lines shown) into an open slot (PG/SG/SF/PF/C).
-  One re-roll token per game. Then the engine simulates an 82-game season against a
-  league-average opponent and explains your record.
+  you draft one player (sortable, full stat lines) into an open slot (PG/SG/SF/PF/C).
+  One re-roll token per game — re-spin everything, keep the era, or keep the
+  franchise. Then the engine simulates an 82-game season against a league-average
+  opponent and explains your record.
 - **Hoop IQ** — the same draft, blind: names, positions and seasons only. The
   results screen reveals what you actually took.
 - **Head-to-Head** — local pass-and-play. Both drafters pick from the *same* wheel
   draw each round (shared pool, snake order), with stats visible or hidden. Teams
-  then play a best-of-7, simulated possession by possession, with a deciding-game
-  box score and a "why you won/lost" breakdown.
+  then play a best-of-7 with 2-2-1-1-1 home court, simulated possession by
+  possession, with a deciding-game box score and a "why you won/lost" breakdown.
+
+Quality-of-life: rearrange your roster mid-draft (tap two slots to swap, penalties
+update live), reopen any past run from history (seeded, bit-identical), copy a text
+summary or download a share image of any result.
 
 The game cannot soft-lock: any player can be assigned to any open slot, with a
 clearly displayed out-of-position penalty, and the wheel only offers pools with
@@ -118,16 +123,18 @@ instant.
   natural usage loses efficiency on the extra load (role players are efficient
   *because* they take few, easy shots); stars taking a lighter load gain a little.
 - **Shot quality**: era-adjusted scoring volume above an average starter's ~16.5
-  pts/36 raises make probability (capped ±7.5%) — volume scorers create good looks,
+  pts/36 raises make probability (capped ±13.5%) — volume scorers create good looks,
   which a naive per-possession model would throw away.
 - **Playmaking**: team assist totals above/below 18 per-36-five shift shot quality
   up to ±2%.
 
-### Calibration (`scripts/sanity.ts`)
+### Calibration (`scripts/sanity.ts`, `scripts/tune-820.ts`)
 
-With the sample dataset: an all-time-great five projects to ~70 wins, an
-end-of-bench five to ~20, the league-average mirror is a coin flip at ~101 points
-a game, and the greats beat the scrubs in >95% of single games.
+With the sample dataset: an all-time-great five projects to ~78 wins, an
+end-of-bench five to ~15, the league-average mirror is a coin flip at ~101 points a
+game, and the greats beat the scrubs in >97% of single games. A perfectly built
+superteam goes **82-0 in roughly 3% of seasons** — possible, never cheap. Home
+court is worth ~1.2% on make probabilities (41/41 in season, 2-2-1-1-1 in series).
 
 ## Project layout
 
