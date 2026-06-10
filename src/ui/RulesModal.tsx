@@ -8,48 +8,71 @@ export function RulesModal({ onClose }: RulesModalProps) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>How to play</h2>
+        <div className="modal-header">
+          <span className="modal-ball">🏀</span>
+          <h2>How to play</h2>
+          <p className="muted">Five spins. Five picks. One season.</p>
+        </div>
 
-        <h3>Classic</h3>
-        <p>
-          Five rounds. Each round the wheel draws a <strong>decade + franchise</strong>{' '}
-          (say, 1990s Chicago) and you draft one player from that pool — full stat
-          lines shown. Fill all five slots (PG/SG/SF/PF/C), then the engine simulates
-          an 82-game season against a league-average team and projects your record.
-        </p>
+        <div className="rules-grid">
+          <div className="rules-card">
+            <div className="rules-emoji">📊</div>
+            <h3>Classic</h3>
+            <p>
+              Each round the wheel draws a <strong>decade + franchise</strong> and you
+              draft one player from that pool, full stat lines on the table. Fill
+              PG/SG/SF/PF/C, then the engine simulates an 82-game season and projects
+              your record.
+            </p>
+          </div>
+          <div className="rules-card">
+            <div className="rules-emoji">🧠</div>
+            <h3>Hoop IQ</h3>
+            <p>
+              Same draft, <strong>no stats</strong> — names, positions and seasons
+              only. You draft from memory; the results screen reveals what you
+              actually took.
+            </p>
+          </div>
+          <div className="rules-card">
+            <div className="rules-emoji">⚔️</div>
+            <h3>Head-to-Head</h3>
+            <p>
+              Two drafters, one machine. Both pick from the <strong>same</strong>{' '}
+              wheel draw each round (shared pool, snake order), then your teams play a
+              possession-by-possession best-of-7 with home court 2-2-1-1-1.
+            </p>
+          </div>
+        </div>
 
-        <h3>Hoop IQ</h3>
-        <p>
-          Same draft, but <strong>no stats</strong> — names, positions and seasons only.
-          You draft from memory; the results screen reveals what you actually took.
-        </p>
-
-        <h3>Head-to-Head</h3>
-        <p>
-          Two drafters, one machine. Each round both draft from the <strong>same</strong>{' '}
-          wheel draw (picks come off the shared pool), snake order alternating who goes
-          first. Then your teams play a possession-by-possession best-of-7.
-        </p>
-
-        <h3>Good to know</h3>
-        <ul>
-          <li>One re-roll token per game lets you re-spin the wheel once.</li>
+        <h3 className="rules-subhead">The fine print that wins games</h3>
+        <ul className="rules-tips">
           <li>
-            Stats are era-adjusted: a 1965 stat line is converted to a common era
-            (pace + league efficiency) before the sim, so decades compete fairly.
+            🎲 <strong>One re-roll token</strong> per game — re-spin everything, keep
+            the era, or keep the franchise.
           </li>
           <li>
-            Any player can fill any open slot, but out-of-position assignments carry a
-            clearly-shown penalty — bigger the farther from their real spot.
+            ⏳ <strong>Era-adjusted:</strong> a 1965 stat line is converted to a common
+            era (pace + league efficiency) before the sim, so decades compete fairly.
           </li>
           <li>
-            Watch team chemistry: five ball-dominant stars (usage overlap) or zero
-            shooters (spacing) will cost you efficiency. The results screen explains every factor.
+            🔁 <strong>Rearrange anytime:</strong> tap two roster slots to swap players
+            during the draft.
+          </li>
+          <li>
+            ⚠️ <strong>Out of position costs you:</strong> any player can fill any open
+            slot, but the fit penalty grows with distance (a center at shooting guard
+            hurts).
+          </li>
+          <li>
+            🧪 <strong>Chemistry is real:</strong> five ball-dominant stars (usage
+            overlap) or zero shooters (spacing) drain efficiency — the results screen
+            itemizes every factor.
           </li>
         </ul>
 
-        <button className="btn btn-primary" onClick={onClose}>
-          Got it
+        <button className="btn btn-primary modal-cta" onClick={onClose}>
+          Let's hoop
         </button>
       </div>
     </div>

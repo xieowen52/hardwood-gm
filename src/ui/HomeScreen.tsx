@@ -1,7 +1,8 @@
-/** Home: mode select, head-to-head setup, run history, how-to-play. */
+/** Home: mode select, head-to-head setup, run history (reopenable), how-to-play. */
 import { useState } from 'react';
 import { COMBOS, DATASET } from '../data/dataset';
 import { clearHistory, type HistoryEntry } from '../state/history';
+import { entryReopenable } from '../state/reopen';
 
 interface HomeScreenProps {
   history: HistoryEntry[];
@@ -9,6 +10,7 @@ interface HomeScreenProps {
   onStartSolo: (mode: 'classic' | 'hoopiq') => void;
   onStartH2H: (names: [string, string], statsVisible: boolean) => void;
   onShowRules: () => void;
+  onOpenEntry: (entry: HistoryEntry) => void;
 }
 
 const MODE_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ export function HomeScreen({
   onStartSolo,
   onStartH2H,
   onShowRules,
+  onOpenEntry,
 }: HomeScreenProps) {
   const [h2hOpen, setH2hOpen] = useState(false);
   const [p1, setP1] = useState('');
@@ -32,23 +35,29 @@ export function HomeScreen({
   return (
     <div className="screen home-screen">
       <header className="home-header">
-        <h1>Hardwood GM</h1>
-        <p className="muted">
-          Spin for a decade + franchise, draft an all-time five, simulate the season.
+        <div className="home-kicker">🏀 spin · draft · simulate</div>
+        <h1 className="home-title">Hardwood GM</h1>
+        <p className="home-sub">
+          The wheel hands you a decade and a franchise. You build the all-time five.
+          The engine plays the games — possession by possession.
         </p>
         <button className="btn btn-ghost" onClick={onShowRules}>
-          How to play
+          ❓ How to play
         </button>
       </header>
 
       <section className="mode-grid">
         <button className="mode-card" onClick={() => onStartSolo('classic')}>
+          <div className="mode-emoji">📊</div>
           <h2>Classic</h2>
-          <p>Draft with full stat lines. Chase 82-0.</p>
+          <p>Draft with full stat lines. Chase the perfect 82-0.</p>
+          <span className="mode-cta">Play →</span>
         </button>
         <button className="mode-card" onClick={() => onStartSolo('hoopiq')}>
+          <div className="mode-emoji">🧠</div>
           <h2>Hoop IQ</h2>
           <p>Blind draft — names only. How well do you really know ball?</p>
+          <span className="mode-cta">Play →</span>
         </button>
         <div
           className={`mode-card ${h2hOpen ? 'mode-card-open' : ''}`}
@@ -59,8 +68,10 @@ export function HomeScreen({
             if (!h2hOpen && (e.key === 'Enter' || e.key === ' ')) setH2hOpen(true);
           }}
         >
+          <div className="mode-emoji">⚔️</div>
           <h2>Head-to-Head</h2>
           <p>Pass-and-play snake draft, then a best-of-7 sim.</p>
+          {!h2hOpen && <span className="mode-cta">Set up →</span>}
           {h2hOpen && (
             <div className="h2h-setup" onClick={(e) => e.stopPropagation()}>
               <input
@@ -121,11 +132,16 @@ export function HomeScreen({
             {history.slice(0, 12).map((h) => (
               <li key={h.id} title={h.rosterNames.join(', ')}>
                 <span className="history-mode">{MODE_LABELS[h.mode] ?? h.mode}</span>
-                <strong>{h.summary}</strong>
-                <span className="muted">
+                <strong className="history-summary">{h.summary}</strong>
+                <span className="muted history-detail">
                   {new Date(h.date).toLocaleDateString()} · {h.rosterNames.slice(0, 5).join(', ')}
                   {h.rosterNames.length > 5 ? '…' : ''}
                 </span>
+                {entryReopenable(h) && (
+                  <button className="btn btn-ghost history-open" onClick={() => onOpenEntry(h)}>
+                    Open ↗
+                  </button>
+                )}
               </li>
             ))}
           </ul>

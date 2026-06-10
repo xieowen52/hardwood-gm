@@ -3,14 +3,10 @@
  * engine; this component only decides which screen is visible.
  */
 import { useCallback, useState } from 'react';
-import {
-  initialH2H,
-  initialSolo,
-  type DraftState,
-  type H2HDraftState,
-  type SoloDraftState,
-} from './state/draftFlow';
-import { loadHistory, markRulesSeen, rulesSeen } from './state/history';
+import type { Roster } from './engine';
+import { initialH2H, initialSolo, type DraftState } from './state/draftFlow';
+import { loadHistory, markRulesSeen, rulesSeen, type HistoryEntry } from './state/history';
+import { rosterFromIds } from './state/reopen';
 import { DraftScreen } from './ui/DraftScreen';
 import { H2HResults } from './ui/H2HResults';
 import { HomeScreen } from './ui/HomeScreen';
@@ -20,8 +16,14 @@ import { SoloResults } from './ui/SoloResults';
 type Screen =
   | { id: 'home' }
   | { id: 'draft'; initial: DraftState; nonce: number }
-  | { id: 'solo-results'; final: SoloDraftState }
-  | { id: 'h2h-results'; final: H2HDraftState };
+  | { id: 'solo-results'; mode: 'classic' | 'hoopiq'; roster: Roster; fixedSeed?: number }
+  | {
+      id: 'h2h-results';
+      names: [string, string];
+      rosters: [Roster, Roster];
+      statsVisible: boolean;
+      fixedSeed?: number;
+    };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ id: 'home' });
@@ -38,8 +40,35 @@ export default function App() {
   }, []);
 
   const onDraftDone = useCallback((final: DraftState) => {
-    if (final.mode === 'h2h') setScreen({ id: 'h2h-results', final });
-    else setScreen({ id: 'solo-results', final });
+    if (final.mode === 'h2h') {
+      setScreen({
+        id: 'h2h-results',
+        names: final.names,
+        rosters: final.rosters,
+        statsVisible: final.statsVisible,
+      });
+    } else {
+      setScreen({ id: 'solo-results', mode: final.mode, roster: final.roster });
+    }
+  }, []);
+
+  const openEntry = useCallback((entry: HistoryEntry) => {
+    if (entry.mode === 'h2h') {
+      const a = rosterFromIds(entry.h2h?.rosterIds[0]);
+      const b = rosterFromIds(entry.h2h?.rosterIds[1]);
+      if (!a || !b || !entry.h2h) return;
+      setScreen({
+        id: 'h2h-results',
+        names: entry.h2h.names,
+        rosters: [a, b],
+        statsVisible: true,
+        fixedSeed: entry.seed,
+      });
+    } else {
+      const roster = rosterFromIds(entry.soloRosterIds);
+      if (!roster) return;
+      setScreen({ id: 'solo-results', mode: entry.mode, roster, fixedSeed: entry.seed });
+    }
   }, []);
 
   const closeRules = useCallback(() => {
@@ -56,6 +85,7 @@ export default function App() {
           onStartSolo={(mode) => startDraft(initialSolo(mode))}
           onStartH2H={(names, statsVisible) => startDraft(initialH2H(names, statsVisible))}
           onShowRules={() => setRulesOpen(true)}
+          onOpenEntry={openEntry}
         />
       )}
 
@@ -70,20 +100,20 @@ export default function App() {
 
       {screen.id === 'solo-results' && (
         <SoloResults
-          mode={screen.final.mode}
-          roster={screen.final.roster}
-          onPlayAgain={() => startDraft(initialSolo(screen.final.mode))}
+          mode={screen.mode}
+          roster={screen.roster}
+          fixedSeed={screen.fixedSeed}
+          onPlayAgain={() => startDraft(initialSolo(screen.mode))}
           onHome={goHome}
         />
       )}
 
       {screen.id === 'h2h-results' && (
         <H2HResults
-          names={screen.final.names}
-          rosters={screen.final.rosters}
-          onPlayAgain={() =>
-            startDraft(initialH2H(screen.final.names, screen.final.statsVisible))
-          }
+          names={screen.names}
+          rosters={screen.rosters}
+          fixedSeed={screen.fixedSeed}
+          onPlayAgain={() => startDraft(initialH2H(screen.names, screen.statsVisible))}
           onHome={goHome}
         />
       )}
