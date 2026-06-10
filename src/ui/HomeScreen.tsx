@@ -10,6 +10,7 @@ interface HomeScreenProps {
   onStartSolo: (mode: 'classic' | 'hoopiq') => void;
   onStartH2H: (names: [string, string], statsVisible: boolean) => void;
   onShowRules: () => void;
+  onShowFormula: () => void;
   onOpenEntry: (entry: HistoryEntry) => void;
 }
 
@@ -25,6 +26,7 @@ export function HomeScreen({
   onStartSolo,
   onStartH2H,
   onShowRules,
+  onShowFormula,
   onOpenEntry,
 }: HomeScreenProps) {
   const [h2hOpen, setH2hOpen] = useState(false);
@@ -41,9 +43,14 @@ export function HomeScreen({
           The wheel hands you a decade and a franchise. You build the all-time five.
           The engine plays the games — possession by possession.
         </p>
-        <button className="btn btn-ghost" onClick={onShowRules}>
-          ❓ How to play
-        </button>
+        <div className="row-gap home-actions">
+          <button className="btn btn-ghost" onClick={onShowRules}>
+            ❓ How to play
+          </button>
+          <button className="btn btn-ghost" onClick={onShowFormula}>
+            🧮 The formula
+          </button>
+        </div>
       </header>
 
       <section className="mode-grid">

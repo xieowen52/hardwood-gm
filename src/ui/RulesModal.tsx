@@ -46,30 +46,32 @@ export function RulesModal({ onClose }: RulesModalProps) {
         </div>
 
         <h3 className="rules-subhead">The fine print that wins games</h3>
-        <ul className="rules-tips">
-          <li>
-            🎲 <strong>One re-roll token</strong> per game — re-spin everything, keep
-            the era, or keep the franchise.
-          </li>
-          <li>
-            ⏳ <strong>Era-adjusted:</strong> a 1965 stat line is converted to a common
-            era (pace + league efficiency) before the sim, so decades compete fairly.
-          </li>
-          <li>
-            🔁 <strong>Rearrange anytime:</strong> tap two roster slots to swap players
-            during the draft.
-          </li>
-          <li>
-            ⚠️ <strong>Out of position costs you:</strong> any player can fill any open
-            slot, but the fit penalty grows with distance (a center at shooting guard
-            hurts).
-          </li>
-          <li>
-            🧪 <strong>Chemistry is real:</strong> five ball-dominant stars (usage
-            overlap) or zero shooters (spacing) drain efficiency — the results screen
-            itemizes every factor.
-          </li>
-        </ul>
+        <div className="tips-grid">
+          <div className="tip-card">
+            <h4>🔁 Two re-roll tokens</h4>
+            <p>One re-spins the team (same era), one re-spins the era (same team). Burn both in one turn for a fresh start.</p>
+          </div>
+          <div className="tip-card">
+            <h4>⏳ Eras compete fairly</h4>
+            <p>Every stat line is converted to a common era — pace and league efficiency — before the sim.</p>
+          </div>
+          <div className="tip-card">
+            <h4>🔀 Rearrange anytime</h4>
+            <p>Tap two roster slots to swap players mid-draft. Fit penalties update live.</p>
+          </div>
+          <div className="tip-card">
+            <h4>⚠️ Position fit costs</h4>
+            <p>Anyone can fill any open slot, but the penalty grows with distance — a center at shooting guard hurts.</p>
+          </div>
+          <div className="tip-card">
+            <h4>🧪 Chemistry is real</h4>
+            <p>Five ball-dominant stars or zero shooters drain efficiency. The results screen itemizes every factor.</p>
+          </div>
+          <div className="tip-card">
+            <h4>🧮 No hidden dice</h4>
+            <p>Check <strong>The formula</strong> on the home screen for exactly what the engine rewards.</p>
+          </div>
+        </div>
 
         <button className="btn btn-primary modal-cta" onClick={onClose}>
           Let's hoop

@@ -8,6 +8,7 @@ import { initialH2H, initialSolo, type DraftState } from './state/draftFlow';
 import { loadHistory, markRulesSeen, rulesSeen, type HistoryEntry } from './state/history';
 import { rosterFromIds } from './state/reopen';
 import { DraftScreen } from './ui/DraftScreen';
+import { FormulaModal } from './ui/FormulaModal';
 import { H2HResults } from './ui/H2HResults';
 import { HomeScreen } from './ui/HomeScreen';
 import { RulesModal } from './ui/RulesModal';
@@ -28,6 +29,7 @@ type Screen =
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ id: 'home' });
   const [rulesOpen, setRulesOpen] = useState(() => !rulesSeen());
+  const [formulaOpen, setFormulaOpen] = useState(false);
   const [history, setHistory] = useState(loadHistory);
 
   const goHome = useCallback(() => {
@@ -85,6 +87,7 @@ export default function App() {
           onStartSolo={(mode) => startDraft(initialSolo(mode))}
           onStartH2H={(names, statsVisible) => startDraft(initialH2H(names, statsVisible))}
           onShowRules={() => setRulesOpen(true)}
+          onShowFormula={() => setFormulaOpen(true)}
           onOpenEntry={openEntry}
         />
       )}
@@ -119,6 +122,7 @@ export default function App() {
       )}
 
       {rulesOpen && <RulesModal onClose={closeRules} />}
+      {formulaOpen && <FormulaModal onClose={() => setFormulaOpen(false)} />}
     </>
   );
 }
