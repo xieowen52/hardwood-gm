@@ -12,6 +12,7 @@ import {
   canReroll,
   draftReducer,
   drawCombo,
+  drawRerollCombo,
   initialH2H,
   initialSolo,
   ROUNDS,
@@ -70,6 +71,88 @@ describe('classic draft flow', () => {
     if (final.mode === 'h2h') throw new Error('unexpected mode');
     expect(final.rerollsLeft).toBeGreaterThanOrEqual(0);
     expect(final.rerollsLeft).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('constrained re-rolls', () => {
+  function stateWithCombo(): DraftState {
+    let state: DraftState = initialSolo('classic');
+    const rng = mulberry32(5);
+    state = draftReducer(state, { type: 'spun', combo: drawCombo(state, COMBOS, rng) });
+    return state;
+  }
+
+  it('team-only re-roll keeps the decade', () => {
+    const state = stateWithCombo();
+    const next = drawRerollCombo(state, COMBOS, 'team', mulberry32(1));
+    if (next !== null) {
+      expect(next.decade).toBe(state.combo!.decade);
+      expect(next.key).not.toBe(state.combo!.key);
+    }
+  });
+
+  it('era-only re-roll keeps the franchise', () => {
+    // 1990s Chicago has no other sample decade; use a franchise that does.
+    let state = stateWithCombo();
+    const bos1960 = COMBOS.find((c) => c.key === '1960-BOS')!;
+    state = { ...state, combo: bos1960 };
+    const next = drawRerollCombo(state, COMBOS, 'era', mulberry32(1));
+    expect(next).not.toBeNull();
+    expect(next!.franchiseId).toBe('BOS');
+    expect(next!.decade).not.toBe(1960);
+  });
+
+  it('full re-roll never returns the current combo', () => {
+    const state = stateWithCombo();
+    for (let i = 0; i < 20; i++) {
+      const next = drawRerollCombo(state, COMBOS, 'both', mulberry32(i));
+      expect(next).not.toBeNull();
+      expect(next!.key).not.toBe(state.combo!.key);
+    }
+  });
+});
+
+describe('position switching (swap)', () => {
+  it('moves a player to an open slot and swaps two filled slots', () => {
+    let state = playDraft(initialSolo('classic'), 3, false);
+    if (state.mode === 'h2h') throw new Error('unexpected mode');
+    // Draft is done — swap is disallowed after completion.
+    const before = state.roster;
+    expect(draftReducer(state, { type: 'swap', a: 'PG', b: 'C' })).toBe(state);
+
+    // Mid-draft: rebuild a partial state and swap.
+    let mid: DraftState = initialSolo('classic');
+    const rng = mulberry32(8);
+    mid = draftReducer(mid, { type: 'spun', combo: drawCombo(mid, COMBOS, rng) });
+    if (mid.mode === 'h2h') throw new Error('unexpected mode');
+    const pool = availablePlayers(mid, mid.combo!);
+    const player = pool[0]!;
+    const pos = assignmentOptions(player, mid.roster)[0]!.position;
+    mid = draftReducer(mid, { type: 'pick', player, position: pos });
+    if (mid.mode === 'h2h') throw new Error('unexpected mode');
+    const otherSlot = pos === 'PG' ? 'C' : 'PG';
+    const swapped = draftReducer(mid, { type: 'swap', a: pos, b: otherSlot });
+    if (swapped.mode === 'h2h') throw new Error('unexpected mode');
+    expect(swapped.roster[otherSlot]?.id).toBe(player.id);
+    expect(swapped.roster[pos]).toBeNull();
+    expect(before).toBeDefined();
+  });
+
+  it('h2h: swap only touches the named team', () => {
+    let state: DraftState = initialH2H(['A', 'B'], true);
+    const rng = mulberry32(2);
+    state = draftReducer(state, { type: 'spun', combo: drawCombo(state, COMBOS, rng) });
+    const pool = availablePlayers(state, state.combo!);
+    const p0 = pool[0]!;
+    if (state.mode !== 'h2h') throw new Error('unexpected mode');
+    const pos0 = assignmentOptions(p0, state.rosters[0])[0]!.position;
+    state = draftReducer(state, { type: 'pick', player: p0, position: pos0 });
+    if (state.mode !== 'h2h') throw new Error('unexpected mode');
+    const target = pos0 === 'SF' ? 'SG' : 'SF';
+    const swapped = draftReducer(state, { type: 'swap', a: pos0, b: target, team: 0 });
+    if (swapped.mode !== 'h2h') throw new Error('unexpected mode');
+    expect(swapped.rosters[0][target]?.id).toBe(p0.id);
+    expect(swapped.rosters[1]).toEqual(state.rosters[1]);
   });
 });
 

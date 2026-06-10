@@ -124,10 +124,42 @@ export function drawCombo(
   return drawn;
 }
 
+/** Re-roll flavors: full spin, same era different team, same team different era. */
+export type RerollKind = 'both' | 'team' | 'era';
+
+/**
+ * Draw a combo for a constrained re-roll, or null when the dataset has no
+ * alternative satisfying the constraint (UI disables that option).
+ */
+export function drawRerollCombo(
+  state: DraftState,
+  combos: readonly FranchiseDecadeCombo[],
+  kind: RerollKind,
+  random: () => number = Math.random,
+): FranchiseDecadeCombo | null {
+  const current = state.combo;
+  if (!current) return null;
+  const need = state.mode === 'h2h' ? 2 : 1;
+
+  const matches = (c: FranchiseDecadeCombo): boolean => {
+    if (c.key === current.key) return false;
+    if (kind === 'team' && c.decade !== current.decade) return false;
+    if (kind === 'era' && c.franchiseId !== current.franchiseId) return false;
+    return availablePlayers(state, c).length >= need;
+  };
+
+  // Prefer combos unused this game; fall back to repeats rather than dead-end.
+  let candidates = combos.filter((c) => !state.usedComboKeys.includes(c.key) && matches(c));
+  if (candidates.length === 0) candidates = combos.filter(matches);
+  if (candidates.length === 0) return null;
+  return candidates[Math.min(candidates.length - 1, Math.floor(random() * candidates.length))] ?? null;
+}
+
 export type DraftAction =
   | { type: 'spun'; combo: FranchiseDecadeCombo }
   | { type: 'reroll'; combo: FranchiseDecadeCombo }
-  | { type: 'pick'; player: PlayerEntry; position: Position };
+  | { type: 'pick'; player: PlayerEntry; position: Position }
+  | { type: 'swap'; a: Position; b: Position; team?: 0 | 1 };
 
 function assign(roster: Roster, player: PlayerEntry, position: Position): Roster {
   if (roster[position] !== null) {
@@ -209,6 +241,25 @@ export function draftReducer(state: DraftState, action: DraftAction): DraftState
         picker: firstPicker(state.round + 1),
         pickInRound: 0,
       };
+    }
+
+    case 'swap': {
+      // Rearrange already-drafted players between slots (move to an open slot
+      // or swap two filled ones). Allowed any time before the draft is done.
+      if (state.phase === 'done' || action.a === action.b) return state;
+      const doSwap = (roster: Roster): Roster => {
+        const va = roster[action.a];
+        const vb = roster[action.b];
+        if (va === null && vb === null) return roster;
+        return { ...roster, [action.a]: vb, [action.b]: va };
+      };
+      if (state.mode === 'h2h') {
+        const team = action.team ?? state.picker;
+        const rosters: [Roster, Roster] = [...state.rosters];
+        rosters[team] = doSwap(rosters[team]);
+        return { ...state, rosters };
+      }
+      return { ...state, roster: doSwap(state.roster) };
     }
 
     default:
