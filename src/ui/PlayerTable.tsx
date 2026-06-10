@@ -1,8 +1,8 @@
 /**
- * The draftable player list for the current combo. With stats (Classic) or
- * blind (Hoop IQ / hidden head-to-head). Selecting a player reveals the slot
- * buttons; out-of-position slots are offered with their penalty labeled, so
- * the draft can never dead-end.
+ * The draftable player list for the current combo. With sortable stat
+ * columns (Classic) or blind (Hoop IQ / hidden head-to-head). Selecting a
+ * player reveals the slot buttons; out-of-position slots are offered with
+ * their penalty labeled, so the draft can never dead-end.
  */
 import { useState } from 'react';
 import type { PlayerEntry, Position } from '../data/types';
@@ -16,12 +16,46 @@ interface PlayerTableProps {
   onPick: (player: PlayerEntry, position: Position) => void;
 }
 
+type SortKey = 'name' | 'pts' | 'trb' | 'ast' | 'stl' | 'blk' | 'fgPct' | 'tpPct' | 'ftPct';
+
+const STAT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: 'pts', label: 'PPG' },
+  { key: 'trb', label: 'RPG' },
+  { key: 'ast', label: 'APG' },
+  { key: 'stl', label: 'SPG' },
+  { key: 'blk', label: 'BPG' },
+  { key: 'fgPct', label: 'FG%' },
+  { key: 'tpPct', label: '3P%' },
+  { key: 'ftPct', label: 'FT%' },
+];
+
 export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>(showStats ? 'pts' : 'name');
+  const [sortDesc, setSortDesc] = useState(showStats);
 
-  const sorted = [...pool].sort((a, b) =>
-    showStats ? b.stats.pts - a.stats.pts : a.name.localeCompare(b.name),
-  );
+  const value = (p: PlayerEntry, key: SortKey): number | string =>
+    key === 'name' ? p.name : p.stats[key];
+
+  const sorted = [...pool].sort((a, b) => {
+    const va = value(a, sortKey);
+    const vb = value(b, sortKey);
+    const cmp =
+      typeof va === 'string' || typeof vb === 'string'
+        ? String(va).localeCompare(String(vb))
+        : va - vb;
+    return sortDesc ? -cmp : cmp;
+  });
+
+  const onSort = (key: SortKey) => {
+    if (key === sortKey) setSortDesc(!sortDesc);
+    else {
+      setSortKey(key);
+      setSortDesc(key !== 'name');
+    }
+  };
+
+  const arrow = (key: SortKey) => (sortKey === key ? (sortDesc ? ' ▾' : ' ▴') : '');
   const anyNaturalFit = poolHasNaturalFit(pool, roster);
 
   return (
@@ -35,34 +69,30 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
       <table className="player-table">
         <thead>
           <tr>
-            <th className="left">Player</th>
+            <th className="left sortable" onClick={() => onSort('name')}>
+              Player{arrow('name')}
+            </th>
             <th className="left">Pos</th>
             <th className="left">Seasons</th>
-            {showStats && (
-              <>
-                <th>PPG</th>
-                <th>RPG</th>
-                <th>APG</th>
-                <th>SPG</th>
-                <th>BPG</th>
-                <th>FG%</th>
-                <th>3P%</th>
-                <th>FT%</th>
-              </>
-            )}
+            {showStats &&
+              STAT_COLUMNS.map((col) => (
+                <th key={col.key} className="sortable" onClick={() => onSort(col.key)}>
+                  {col.label}
+                  {arrow(col.key)}
+                </th>
+              ))}
           </tr>
         </thead>
         <tbody>
           {sorted.map((p) => {
             const selected = p.id === selectedId;
-            const options = assignmentOptions(p, roster);
             return (
               <PlayerRow
                 key={p.id}
                 player={p}
                 showStats={showStats}
                 selected={selected}
-                options={options}
+                options={assignmentOptions(p, roster)}
                 onSelect={() => setSelectedId(selected ? null : p.id)}
                 onPick={(pos) => onPick(p, pos)}
               />
