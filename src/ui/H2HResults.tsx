@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DATASET } from '../data/dataset';
+import { POSITIONS } from '../data/types';
 import {
   buildTeam,
   explainSeries,
@@ -17,16 +18,19 @@ import { addHistory } from '../state/history';
 import { copyText } from './copy';
 import { fmt1 } from './format';
 import { RosterStatsTable } from './RosterStatsTable';
+import { downloadShareImage } from './shareImage';
 
 interface H2HResultsProps {
   names: [string, string];
   rosters: [Roster, Roster];
+  /** Reopened run: reuse this seed and skip saving to history. */
+  fixedSeed?: number;
   onPlayAgain: () => void;
   onHome: () => void;
 }
 
-export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsProps) {
-  const seed = useMemo(() => randomSeed(), []);
+export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H2HResultsProps) {
+  const seed = useMemo(() => fixedSeed ?? randomSeed(), [fixedSeed]);
   const teams = useMemo(
     () =>
       [
@@ -48,7 +52,7 @@ export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsPr
 
   const savedRef = useRef(false);
   useEffect(() => {
-    if (savedRef.current) return;
+    if (savedRef.current || fixedSeed !== undefined) return;
     savedRef.current = true;
     addHistory({
       mode: 'h2h',
@@ -58,8 +62,15 @@ export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsPr
         ...rosterPlayers(rosters[1]).map((p) => `${names[1]}: ${p.name}`),
       ],
       seed,
+      h2h: {
+        names,
+        rosterIds: [
+          POSITIONS.map((pos) => rosters[0][pos]?.id ?? ''),
+          POSITIONS.map((pos) => rosters[1][pos]?.id ?? ''),
+        ],
+      },
     });
-  }, [summary, rosters, names, seed]);
+  }, [summary, rosters, names, seed, fixedSeed]);
 
   const copy = async () => {
     const lines = [
@@ -71,6 +82,18 @@ export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsPr
     ];
     setCopied(await copyText(lines.join('\n')));
     window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareImage = () => {
+    downloadShareImage({
+      title: 'HARDWOOD GM · HEAD-TO-HEAD',
+      headline: summary,
+      subtitle: `Best of 7 · games: ${series.games.map((g) => `${g.aPts}-${g.bPts}`).join(', ')}`,
+      lines: POSITIONS.flatMap((pos) => [
+        { label: `${pos}`, value: `${rosters[0][pos]?.name ?? '—'}  vs  ${rosters[1][pos]?.name ?? '—'}` },
+      ]),
+      footer: `${names[0]} vs ${names[1]} · seed ${seed} · hardwood-gm`,
+    });
   };
 
   return (
@@ -88,7 +111,7 @@ export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsPr
         <div className="game-chips">
           {series.games.map((g, i) => (
             <div key={i} className={`game-chip ${g.winner === 0 ? 'chip-a' : 'chip-b'}`}>
-              <span className="muted">G{i + 1}</span>
+              <span className="muted">G{i + 1} · 🏠 {names[g.home]}</span>
               <strong>
                 {g.aPts}–{g.bPts}
               </strong>
@@ -143,6 +166,7 @@ export function H2HResults({ names, rosters, onPlayAgain, onHome }: H2HResultsPr
         <button className="btn btn-primary" onClick={copy}>
           {copied ? 'Copied ✓' : 'Copy result'}
         </button>
+        <button className="btn" onClick={shareImage}>Save image</button>
         <button className="btn" onClick={onPlayAgain}>Run it back</button>
         <button className="btn btn-ghost" onClick={onHome}>Home</button>
       </footer>

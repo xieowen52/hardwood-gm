@@ -1,6 +1,8 @@
 /**
  * Results for Classic / Hoop IQ: projected 82-game record vs a league-average
- * opponent, category breakdown, the "why" explanation, era toggle, copy.
+ * opponent, category breakdown, the "why" explanation, era toggle, copy and
+ * share-image. With a `fixedSeed` (reopened history) the exact run is
+ * reproduced and not re-saved.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DATASET } from '../data/dataset';
@@ -18,16 +20,19 @@ import { addHistory } from '../state/history';
 import { copyText } from './copy';
 import { fmt1 } from './format';
 import { RosterStatsTable } from './RosterStatsTable';
+import { downloadShareImage } from './shareImage';
 
 interface SoloResultsProps {
   mode: 'classic' | 'hoopiq';
   roster: Roster;
+  /** Reopened run: reuse this seed and skip saving to history. */
+  fixedSeed?: number;
   onPlayAgain: () => void;
   onHome: () => void;
 }
 
-export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsProps) {
-  const seed = useMemo(() => randomSeed(), []);
+export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: SoloResultsProps) {
+  const seed = useMemo(() => fixedSeed ?? randomSeed(), [fixedSeed]);
   const team = useMemo(
     () => buildTeam('Your team', roster, DATASET.leagueContext),
     [roster],
@@ -35,18 +40,20 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
   const season = useMemo(() => simulateSeason(team, seed), [team, seed]);
   const explanation = useMemo(() => explainSeason(team, season), [team, season]);
   const [copied, setCopied] = useState(false);
+  const perfect = season.losses === 0;
 
   const savedRef = useRef(false);
   useEffect(() => {
-    if (savedRef.current) return;
+    if (savedRef.current || fixedSeed !== undefined) return;
     savedRef.current = true;
     addHistory({
       mode,
       summary: `${season.wins}-${season.losses}`,
       rosterNames: rosterPlayers(roster).map((p) => p.name),
       seed,
+      soloRosterIds: POSITIONS.map((pos) => roster[pos]?.id ?? ''),
     });
-  }, [mode, roster, season, seed]);
+  }, [mode, roster, season, seed, fixedSeed]);
 
   // League-average per-game yardsticks, derived from the same synthetic
   // opponent the team actually played.
@@ -66,19 +73,31 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
     };
   }, []);
 
+  const rosterLines = POSITIONS.map((pos) => {
+    const p = roster[pos];
+    return { label: pos, value: p ? `${p.name} (${p.decade}s, ${p.from}–${p.to})` : '—' };
+  });
+
   const copy = async () => {
     const lines = [
       `Hardwood GM — ${mode === 'classic' ? 'Classic' : 'Hoop IQ'}`,
       `Projected record: ${season.wins}-${season.losses} (${fmt1(season.pointsFor)} for, ${fmt1(season.pointsAgainst)} against)`,
-      ...POSITIONS.map((pos) => {
-        const p = roster[pos];
-        return p ? `${pos}: ${p.name} (${p.decade}s, ${p.from}–${p.to})` : `${pos}: —`;
-      }),
+      ...rosterLines.map((l) => `${l.label}: ${l.value}`),
       `Why: ${explanation.slice(0, 2).join(' ')}`,
       `Seed ${seed}`,
     ];
     setCopied(await copyText(lines.join('\n')));
     window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareImage = () => {
+    downloadShareImage({
+      title: `HARDWOOD GM · ${mode === 'classic' ? 'CLASSIC' : 'HOOP IQ'}`,
+      headline: `${season.wins}–${season.losses}`,
+      subtitle: `82 games vs a league-average team · ${fmt1(season.pointsFor)} ppg for, ${fmt1(season.pointsAgainst)} against`,
+      lines: rosterLines,
+      footer: perfect ? 'PERFECT SEASON. 82-0. Hang the banner.' : `Seed ${seed} · hardwood-gm`,
+    });
   };
 
   const categories = [
@@ -95,9 +114,10 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
     <div className="screen results-screen">
       <header className="results-header">
         <h2>{mode === 'hoopiq' ? 'Hoop IQ — the reveal' : 'Season simulated'}</h2>
-        <div className="record">
+        <div className={`record ${perfect ? 'record-perfect' : ''}`}>
           {season.wins}–{season.losses}
         </div>
+        {perfect && <div className="perfect-banner">🏆 PERFECT SEASON</div>}
         <p className="muted">
           82 games vs a league-average team · {fmt1(season.pointsFor)} ppg for,{' '}
           {fmt1(season.pointsAgainst)} against · seed {seed}
@@ -110,7 +130,7 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
       <RosterStatsTable roster={roster} />
 
       <section className="results-grid">
-        <div>
+        <div className="panel">
           <h3>Team per game (vs league average)</h3>
           <table className="player-table">
             <thead>
@@ -142,7 +162,7 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
           </table>
         </div>
 
-        <div>
+        <div className="panel">
           <h3>Why</h3>
           <ul className="why-list">
             {explanation.map((line, i) => (
@@ -179,6 +199,7 @@ export function SoloResults({ mode, roster, onPlayAgain, onHome }: SoloResultsPr
         <button className="btn btn-primary" onClick={copy}>
           {copied ? 'Copied ✓' : 'Copy result'}
         </button>
+        <button className="btn" onClick={shareImage}>Save image</button>
         <button className="btn" onClick={onPlayAgain}>Play again</button>
         <button className="btn btn-ghost" onClick={onHome}>Home</button>
       </footer>
