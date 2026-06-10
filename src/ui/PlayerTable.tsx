@@ -5,7 +5,7 @@
  * their penalty labeled, so the draft can never dead-end.
  */
 import { useState } from 'react';
-import type { PlayerEntry, Position } from '../data/types';
+import { POSITIONS, type PlayerEntry, type Position } from '../data/types';
 import { assignmentOptions, poolHasNaturalFit, type Roster } from '../engine';
 import { fmt1, fmtPct, spanLabel } from './format';
 
@@ -29,15 +29,29 @@ const STAT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'ftPct', label: 'FT%' },
 ];
 
+const SORT_LABELS: Record<SortKey, string> = {
+  name: 'Name',
+  pts: 'Points',
+  trb: 'Rebounds',
+  ast: 'Assists',
+  stl: 'Steals',
+  blk: 'Blocks',
+  fgPct: 'FG%',
+  tpPct: '3P%',
+  ftPct: 'FT%',
+};
+
 export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(showStats ? 'pts' : 'name');
   const [sortDesc, setSortDesc] = useState(showStats);
+  const [posFilter, setPosFilter] = useState<Position | null>(null);
 
   const value = (p: PlayerEntry, key: SortKey): number | string =>
     key === 'name' ? p.name : p.stats[key];
 
-  const sorted = [...pool].sort((a, b) => {
+  const filtered = posFilter ? pool.filter((p) => p.positions.includes(posFilter)) : pool;
+  const sorted = [...filtered].sort((a, b) => {
     const va = value(a, sortKey);
     const vb = value(b, sortKey);
     const cmp =
@@ -57,6 +71,9 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
 
   const arrow = (key: SortKey) => (sortKey === key ? (sortDesc ? ' ▾' : ' ▴') : '');
   const anyNaturalFit = poolHasNaturalFit(pool, roster);
+  const sortChoices: SortKey[] = showStats
+    ? ['pts', 'trb', 'ast', 'stl', 'blk', 'fgPct', 'tpPct', 'ftPct', 'name']
+    : ['name'];
 
   return (
     <div className="player-table-wrap">
@@ -64,6 +81,59 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
         <p className="notice">
           No player here fits your remaining slots naturally — assign someone out of
           position (penalty shown) to keep going.
+        </p>
+      )}
+
+      <div className="table-controls">
+        <div className="filter-chips" role="group" aria-label="Filter by position">
+          <span className="muted">Position:</span>
+          <button
+            className={`chip ${posFilter === null ? 'chip-active' : ''}`}
+            onClick={() => setPosFilter(null)}
+          >
+            All
+          </button>
+          {POSITIONS.map((pos) => (
+            <button
+              key={pos}
+              className={`chip ${posFilter === pos ? 'chip-active' : ''}`}
+              onClick={() => setPosFilter(posFilter === pos ? null : pos)}
+            >
+              {pos}
+            </button>
+          ))}
+        </div>
+        {showStats && (
+          <label className="sort-control">
+            <span className="muted">Sort by</span>
+            <select
+              value={sortKey}
+              onChange={(e) => {
+                const key = e.target.value as SortKey;
+                setSortKey(key);
+                setSortDesc(key !== 'name');
+              }}
+            >
+              {sortChoices.map((key) => (
+                <option key={key} value={key}>
+                  {SORT_LABELS[key]}
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn chip"
+              onClick={() => setSortDesc(!sortDesc)}
+              title="Flip sort direction"
+            >
+              {sortDesc ? '▾ high → low' : '▴ low → high'}
+            </button>
+          </label>
+        )}
+      </div>
+
+      {sorted.length === 0 && (
+        <p className="notice">
+          Nobody in this pool plays {posFilter} — clear the filter to see everyone.
         </p>
       )}
       <table className="player-table">
