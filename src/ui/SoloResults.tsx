@@ -10,7 +10,6 @@ import { POSITIONS } from '../data/types';
 import {
   buildTeam,
   explainSeason,
-  leagueAverageTeam,
   randomSeed,
   rosterPlayers,
   simulateSeason,
@@ -55,23 +54,9 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
     });
   }, [mode, roster, season, seed, fixedSeed]);
 
-  // League-average per-game yardsticks, derived from the same synthetic
-  // opponent the team actually played.
-  const avg = useMemo(() => {
-    const t = leagueAverageTeam();
-    const scale = 48 / 36; // five players, 48 effective minutes each
-    const sum = (f: (n: (typeof t.players)[number]['norm']) => number) =>
-      t.players.reduce((s, p) => s + f(p.norm), 0) * scale;
-    return {
-      pts: sum((n) => n.pts),
-      reb: sum((n) => n.trb),
-      ast: sum((n) => n.ast),
-      stl: sum((n) => n.stl),
-      blk: sum((n) => n.blk),
-      tov: sum((n) => n.tov),
-      tpm: sum((n) => n.tpa * n.p3),
-    };
-  }, []);
+  // Yardstick: what the league-average opponent actually produced in the
+  // same simulated games — apples-to-apples with the team's numbers.
+  const avg = season.opponentTotals;
 
   const rosterLines = POSITIONS.map((pos) => {
     const p = roster[pos];

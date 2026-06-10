@@ -20,6 +20,11 @@ export interface SeasonResult {
   playerAverages: BoxLine[];
   /** Team per-game category totals (derived from playerAverages). */
   teamTotals: Pick<BoxLine, 'pts' | 'reb' | 'ast' | 'stl' | 'blk' | 'tov' | 'tpm'>;
+  /**
+   * The league-average opponent's per-game totals over the same simulated
+   * games — the apples-to-apples yardstick for the category breakdown.
+   */
+  opponentTotals: Pick<BoxLine, 'pts' | 'reb' | 'ast' | 'stl' | 'blk' | 'tov' | 'tpm'>;
   secondChancePerGame: number;
   /** Fit/synergy factors that shaped the result. */
   factors: FitFactor[];
@@ -38,6 +43,7 @@ export function simulateSeason(
   let pointsAgainst = 0;
   let secondChance = 0;
   const boxes: TeamBox[] = [];
+  const oppBoxes: TeamBox[] = [];
 
   for (let g = 0; g < games; g++) {
     // Balanced schedule: alternate home and away (41/41 over a full season).
@@ -47,13 +53,17 @@ export function simulateSeason(
     pointsAgainst += result.b.pts;
     secondChance += result.a.secondChancePts;
     boxes.push(result.a);
+    oppBoxes.push(result.b);
   }
 
   const playerAverages = averageBox(boxes);
-  const sum = (f: (l: BoxLine) => number) => {
-    const v = playerAverages.reduce((s, l) => s + f(l), 0);
+  const opponentAverages = averageBox(oppBoxes);
+  const sumOf = (lines: BoxLine[], f: (l: BoxLine) => number) => {
+    const v = lines.reduce((s, l) => s + f(l), 0);
     return Math.round(v * 10) / 10;
   };
+  const sum = (f: (l: BoxLine) => number) => sumOf(playerAverages, f);
+  const oppSum = (f: (l: BoxLine) => number) => sumOf(opponentAverages, f);
 
   return {
     wins,
@@ -70,6 +80,15 @@ export function simulateSeason(
       blk: sum((l) => l.blk),
       tov: sum((l) => l.tov),
       tpm: sum((l) => l.tpm),
+    },
+    opponentTotals: {
+      pts: oppSum((l) => l.pts),
+      reb: oppSum((l) => l.reb),
+      ast: oppSum((l) => l.ast),
+      stl: oppSum((l) => l.stl),
+      blk: oppSum((l) => l.blk),
+      tov: oppSum((l) => l.tov),
+      tpm: oppSum((l) => l.tpm),
     },
     secondChancePerGame: Math.round((secondChance / games) * 10) / 10,
     factors: team.factors,

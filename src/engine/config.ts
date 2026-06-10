@@ -43,8 +43,12 @@ export const FIT = {
   usageOverlapThreshold: 125,
   /** Efficiency lost per usage point above the threshold. */
   usageOverlapPerPoint: 0.002,
-  /** Cap on the usage-overlap efficiency penalty. */
-  usageOverlapMax: 0.06,
+  /**
+   * Cap on the usage-overlap efficiency penalty. Kept modest on purpose: in
+   * an all-time draft every pool is stars, and drafting five of them should
+   * still beat drafting role players — this is friction, not a wall.
+   */
+  usageOverlapMax: 0.05,
   /**
    * SKILL CURVE: a player forced to take a larger share of team shots than
    * their natural usage (usage/100) loses efficiency on the extra load —
@@ -101,8 +105,12 @@ export const POSSESSION = {
   defScoreBaseline: 1.15,
   /** Cap on the total defensive make% adjustment (fraction of make prob). */
   defenderImpactMax: 0.15,
-  /** Chance a missed shot near a strong shot blocker is credited as a block. */
-  blockCreditFactor: 0.045,
+  /**
+   * Chance a missed 2-pointer is credited as a block (scaled by team rim
+   * protection). ~11-13% of missed twos are blocked in the real league, so an
+   * average defense lands near its real ~5 blocks a game.
+   */
+  blockCreditFactor: 0.12,
   /** Chance a turnover is credited as a defender's steal. */
   stealCreditShare: 0.55,
   /** Chance a made basket gets an assist credited. */
