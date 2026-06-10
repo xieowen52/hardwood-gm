@@ -50,9 +50,14 @@ export function HomeScreen({
           <h2>Hoop IQ</h2>
           <p>Blind draft — names only. How well do you really know ball?</p>
         </button>
-        <button
+        <div
           className={`mode-card ${h2hOpen ? 'mode-card-open' : ''}`}
+          role="button"
+          tabIndex={0}
           onClick={() => setH2hOpen(true)}
+          onKeyDown={(e) => {
+            if (!h2hOpen && (e.key === 'Enter' || e.key === ' ')) setH2hOpen(true);
+          }}
         >
           <h2>Head-to-Head</h2>
           <p>Pass-and-play snake draft, then a best-of-7 sim.</p>
@@ -91,7 +96,7 @@ export function HomeScreen({
               </div>
             </div>
           )}
-        </button>
+        </div>
       </section>
 
       <section className="history-section">
