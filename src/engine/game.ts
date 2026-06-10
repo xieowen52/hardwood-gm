@@ -218,6 +218,8 @@ function simulatePossession(off: SideState, def: SideState, rng: Rng): void {
 export interface GameOptions {
   /** Apply per-game form noise (used by season sims for variance). */
   formNoise?: boolean;
+  /** Which side has home court (make-prob bonus), if any. */
+  home?: 0 | 1 | null;
 }
 
 export function simulateGame(
@@ -227,9 +229,11 @@ export function simulateGame(
   options: GameOptions = {},
 ): GameResult {
   const noise = options.formNoise ?? true;
+  const home = options.home ?? null;
   const form = () => (noise ? 1 + (rng() * 2 - 1) * POSSESSION.gameFormNoise : 1);
-  const sideA: SideState = { team: a, box: emptyBox(a), form: form() };
-  const sideB: SideState = { team: b, box: emptyBox(b), form: form() };
+  const hca = (side: 0 | 1) => (home === side ? 1 + POSSESSION.homeCourtBoost : 1);
+  const sideA: SideState = { team: a, box: emptyBox(a), form: form() * hca(0) };
+  const sideB: SideState = { team: b, box: emptyBox(b), form: form() * hca(1) };
 
   const spread = POSSESSION.possessionSpread;
   let possessions = POSSESSION.basePossessions + Math.floor(rng() * (2 * spread + 1)) - spread;

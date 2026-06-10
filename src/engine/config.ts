@@ -66,8 +66,8 @@ export const FIT = {
    * per-possession model would otherwise throw away.
    */
   shotQualityBaselinePts: 16.5,
-  shotQualitySlope: 0.5,
-  shotQualityMax: 0.075,
+  shotQualitySlope: 0.55,
+  shotQualityMax: 0.135,
   /** Team turnover rate is pulled toward this league-typical center... */
   tovCenter: 0.13,
   /** ...keeping this fraction of the raw spread (stars handle more, but load is shared). */
@@ -96,11 +96,11 @@ export const POSSESSION = {
   /** P(shooting-foul trip) = shooter ftRate (FTA/FGA) times this. */
   foulTripFactor: 0.3,
   /** Matchup defender effect: make% multiplier scales with def score above/below average. */
-  defenderImpact: 0.07,
+  defenderImpact: 0.09,
   /** League-average individual defensive score (see normalize.defScore): 0.6*1.1 stl + 0.7*0.7 blk. */
   defScoreBaseline: 1.15,
   /** Cap on the total defensive make% adjustment (fraction of make prob). */
-  defenderImpactMax: 0.12,
+  defenderImpactMax: 0.15,
   /** Chance a missed shot near a strong shot blocker is credited as a block. */
   blockCreditFactor: 0.045,
   /** Chance a turnover is credited as a defender's steal. */
@@ -112,7 +112,9 @@ export const POSSESSION = {
   /** Putback attempt after an offensive rebound gets this make% bonus (2pt). */
   putbackBonus: 0.05,
   /** Per-game team form noise (uniform +/- this, applied to make probabilities). */
-  gameFormNoise: 0.02,
+  gameFormNoise: 0.015,
+  /** Home-court advantage: make-probability multiplier bonus for the home side. */
+  homeCourtBoost: 0.012,
 } as const;
 
 export const SEASON_GAMES = 82;

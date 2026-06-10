@@ -40,7 +40,8 @@ export function simulateSeason(
   const boxes: TeamBox[] = [];
 
   for (let g = 0; g < games; g++) {
-    const result = simulateGame(team, opponent, rng, { formNoise: true });
+    // Balanced schedule: alternate home and away (41/41 over a full season).
+    const result = simulateGame(team, opponent, rng, { formNoise: true, home: (g % 2) as 0 | 1 });
     if (result.winner === 0) wins++;
     pointsFor += result.a.pts;
     pointsAgainst += result.b.pts;

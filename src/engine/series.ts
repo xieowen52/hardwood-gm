@@ -13,7 +13,12 @@ export interface SeriesGameSummary {
   bPts: number;
   winner: 0 | 1;
   overtimes: number;
+  /** Which side hosted (2-2-1-1-1 pattern, team A holds court). */
+  home: 0 | 1;
 }
+
+/** 2-2-1-1-1: team A hosts games 1, 2, 5, 7; team B hosts 3, 4, 6. */
+const HOME_PATTERN: readonly (0 | 1)[] = [0, 0, 1, 1, 0, 1, 0];
 
 export interface MatchupStats {
   runs: number;
@@ -74,8 +79,9 @@ export function simulateSeries(a: TeamProfile, b: TeamProfile, seed: number): Se
   let decidingGame: GameResult | null = null;
 
   while (wins[0] < SERIES_WINS_NEEDED && wins[1] < SERIES_WINS_NEEDED) {
-    const g = simulateGame(a, b, rng, { formNoise: true });
-    games.push({ aPts: g.a.pts, bPts: g.b.pts, winner: g.winner, overtimes: g.overtimes });
+    const home = HOME_PATTERN[games.length] ?? 0;
+    const g = simulateGame(a, b, rng, { formNoise: true, home });
+    games.push({ aPts: g.a.pts, bPts: g.b.pts, winner: g.winner, overtimes: g.overtimes, home });
     wins[g.winner]++;
     decidingGame = g;
   }
