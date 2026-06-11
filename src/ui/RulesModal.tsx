@@ -1,10 +1,12 @@
 /** How-to-play modal; auto-shown on first visit, reopenable from Home. */
+import { useEscape } from './useEscape';
 
 interface RulesModalProps {
   onClose: () => void;
 }
 
 export function RulesModal({ onClose }: RulesModalProps) {
+  useEscape(onClose);
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>

@@ -2,12 +2,14 @@
  * "The formula" — player-facing explanation of exactly what the engine
  * rewards and punishes, so drafting well is a skill, not a guess.
  */
+import { useEscape } from './useEscape';
 
 interface FormulaModalProps {
   onClose: () => void;
 }
 
 export function FormulaModal({ onClose }: FormulaModalProps) {
+  useEscape(onClose);
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>

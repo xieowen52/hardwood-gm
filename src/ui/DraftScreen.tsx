@@ -73,10 +73,21 @@ export function DraftScreen({ initial, onDone, onQuit }: DraftScreenProps) {
   const teamRoll = rerollState('team');
   const eraRoll = rerollState('era');
 
+  const quit = () => {
+    const picksMade =
+      state.mode === 'h2h'
+        ? state.rosters.some((r) => Object.values(r).some((p) => p !== null))
+        : Object.values(state.roster).some((p) => p !== null);
+    if (state.phase !== 'done' && picksMade) {
+      if (!window.confirm('Abandon this draft? The run will not be saved.')) return;
+    }
+    onQuit();
+  };
+
   return (
     <div className="screen draft-screen">
       <header className="draft-header">
-        <button className="btn btn-ghost" onClick={onQuit}>← Quit</button>
+        <button className="btn btn-ghost" onClick={quit}>← Quit</button>
         <h2>
           Round {Math.min(state.round + 1, ROUNDS)} <span className="muted">/ {ROUNDS}</span>
           {pickerName && <span className="picker-name"> — {pickerName} on the clock</span>}
