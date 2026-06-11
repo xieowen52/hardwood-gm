@@ -277,6 +277,8 @@ interface SeasonRow {
   usg: number | null;
   hasMp: boolean;
   hasTov: boolean;
+  /** Steals/blocks actually present in the source row (recorded from 1973-74). */
+  hasDef: boolean;
 }
 
 function parseSeason(raw: string): number | null {
@@ -375,6 +377,8 @@ function main(): void {
     const get = (key: string): number | null => num(fields, cols.get(key));
     const mp = get('mp');
     const tov = get('tov');
+    const stl = get('stl');
+    const blk = get('blk');
     seasonRows.push({
       player, season, franchiseId, positions, g,
       mp: (mp ?? 0) * scale,
@@ -382,10 +386,11 @@ function main(): void {
       pts: (get('pts') ?? 0) * scale,
       trb: (get('trb') ?? 0) * scale,
       ast: (get('ast') ?? 0) * scale,
-      stl: (get('stl') ?? 0) * scale,
-      blk: (get('blk') ?? 0) * scale,
+      stl: (stl ?? 0) * scale,
+      blk: (blk ?? 0) * scale,
       tov: (tov ?? 0) * scale,
       hasTov: tov !== null,
+      hasDef: stl !== null || blk !== null,
       fga: (get('fga') ?? 0) * scale,
       fg: (get('fg') ?? 0) * scale,
       tpa: (get('tpa') ?? 0) * scale,
@@ -397,16 +402,45 @@ function main(): void {
   }
   if (seasonRows.length === 0) fail('no usable rows after parsing');
 
-  // ── League context per season ────────────────────────────────────────────
-  // Team-level rates estimated from player aggregates: 240 player-minutes per
-  // team-game. When MP is missing entirely, fall back to 5*48 minutes per
-  // player-game (overstates bench minutes but keeps ratios usable).
   const bySeason = new Map<number, SeasonRow[]>();
   for (const row of seasonRows) {
     const list = bySeason.get(row.season);
     if (list) list.push(row);
     else bySeason.set(row.season, [row]);
   }
+
+  // ── Per-season reliability of recorded stl/blk/tov ──────────────────────
+  // Game-log sources backfill old box scores with zeros: steals "recorded"
+  // in 1974 can sum to 15% of the published league rate. A season's recorded
+  // values are trusted only when the league-wide rate they imply reaches 85%
+  // of the published average for that season — otherwise the per-entry
+  // estimates take over (see below).
+  const defReliable = new Set<number>();
+  const tovReliable = new Set<number>();
+  for (const [season, list] of bySeason) {
+    const sum = (f: (r: SeasonRow) => number) => list.reduce((s, r) => s + f(r), 0);
+    const minutes = Math.max(sum((r) => (r.hasMp ? r.mp : r.g * 24)), 1);
+    const per240 = (total: number) => (total / minutes) * 240;
+    const pub = defensiveAnchors(season);
+    if (per240(sum((r) => r.stl)) >= 0.85 * pub.stl && per240(sum((r) => r.blk)) >= 0.85 * pub.blk) {
+      defReliable.add(season);
+    }
+    if (per240(sum((r) => r.tov)) >= 0.85 * pub.tov) tovReliable.add(season);
+  }
+  for (const row of seasonRows) {
+    row.hasDef = row.hasDef && defReliable.has(row.season);
+    row.hasTov = row.hasTov && tovReliable.has(row.season);
+  }
+  const minDef = Math.min(...defReliable);
+  const minTov = Math.min(...tovReliable);
+  console.log(
+    `ingest: recorded steals/blocks trusted from ${Number.isFinite(minDef) ? minDef : 'never'}, turnovers from ${Number.isFinite(minTov) ? minTov : 'never'}; earlier seasons use estimates`,
+  );
+
+  // ── League context per season ────────────────────────────────────────────
+  // Team-level rates estimated from player aggregates: 240 player-minutes per
+  // team-game. When MP is missing entirely, fall back to 5*48 minutes per
+  // player-game (overstates bench minutes but keeps ratios usable).
   const leagueContext: LeagueSeasonContext[] = [];
   for (const [season, list] of [...bySeason.entries()].sort((a, b) => a[0] - b[0])) {
     const sum = (f: (r: SeasonRow) => number) => list.reduce((s, r) => s + f(r), 0);
@@ -467,7 +501,6 @@ function main(): void {
     const tpa = sum((r) => r.tpa);
     const fta = sum((r) => r.fta);
     const mp = sum((r) => (r.hasMp ? r.mp : r.g * 30));
-    const tov = sum((r) => r.tov);
 
     // Positions: rank by games played at each listed position.
     const posGames = new Map<Position, number>();
@@ -483,6 +516,26 @@ function main(): void {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([pos]) => pos);
+
+    // Steals/blocks (recorded from 1973-74) and turnovers (from 1977-78):
+    // average over the games where they were actually recorded. For spans
+    // with no recorded games, estimate — steals/blocks from position norms,
+    // turnovers from shot volume + passing load — instead of treating the
+    // missing seasons as literal zeros.
+    const defGames = sum((r) => (r.hasDef ? r.g : 0));
+    const tovGames = sum((r) => (r.hasTov ? r.g : 0));
+    const primary: Position = positions[0] ?? 'SF';
+    const EST_STL: Record<Position, number> = { PG: 1.2, SG: 1.1, SF: 1.0, PF: 0.8, C: 0.6 };
+    const EST_BLK: Record<Position, number> = { PG: 0.2, SG: 0.3, SF: 0.5, PF: 0.9, C: 1.4 };
+    const stlPg =
+      defGames > 0 ? round(sum((r) => (r.hasDef ? r.stl : 0)) / defGames, 1) : EST_STL[primary];
+    const blkPg =
+      defGames > 0 ? round(sum((r) => (r.hasDef ? r.blk : 0)) / defGames, 1) : EST_BLK[primary];
+    const tovPg =
+      tovGames > 0
+        ? round(sum((r) => (r.hasTov ? r.tov : 0)) / tovGames, 1)
+        : round((0.13 * (fga + 0.44 * fta) + 0.08 * sum((r) => r.ast)) / games, 1);
+    const tov = tovPg * games;
 
     // Usage: games-weighted source value when present, else the standard
     // estimate vs. that era's pace (see file header).
@@ -524,8 +577,8 @@ function main(): void {
       games,
       stats: {
         mp: per(mp), pts: per(sum((r) => r.pts)), trb: per(sum((r) => r.trb)),
-        ast: per(sum((r) => r.ast)), stl: per(sum((r) => r.stl)),
-        blk: per(sum((r) => r.blk)), tov: per(tov),
+        ast: per(sum((r) => r.ast)), stl: stlPg,
+        blk: blkPg, tov: tovPg,
         fga: per(fga), fgPct: ratio(sum((r) => r.fg), fga),
         tpa: per(tpa), tpPct: ratio(sum((r) => r.tp), tpa),
         fta: per(fta), ftPct: ratio(sum((r) => r.ft), fta),
@@ -672,6 +725,41 @@ function anchorContext(season: number): LeagueSeasonContext {
     tpaPerGame: threes ? round(lerp(lo[6], hi[6], t), 1) : 0,
     ftaPerGame: round(lerp(lo[7], hi[7], t), 1),
   };
+}
+
+/**
+ * Published league-average TEAM steals/blocks/turnovers per game (anchor
+ * seasons, interpolated) — the yardstick for trusting a source season's
+ * recorded defensive stats. [season, stl, blk, tov]
+ */
+const DEF_ANCHORS: [number, number, number, number][] = [
+  [1974, 8.8, 4.8, 19.0],
+  [1980, 9.0, 5.2, 18.8],
+  [1985, 8.5, 5.3, 17.5],
+  [1990, 8.0, 5.0, 16.0],
+  [1995, 8.5, 5.4, 15.9],
+  [2000, 8.0, 5.4, 15.9],
+  [2005, 7.5, 5.0, 14.7],
+  [2010, 7.3, 4.9, 14.2],
+  [2015, 7.7, 4.8, 14.4],
+  [2020, 7.6, 4.9, 14.6],
+  [2026, 7.7, 5.0, 13.5],
+];
+
+function defensiveAnchors(season: number): { stl: number; blk: number; tov: number } {
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const first = DEF_ANCHORS[0]!;
+  const last = DEF_ANCHORS[DEF_ANCHORS.length - 1]!;
+  const s = Math.min(Math.max(season, first[0]), last[0]);
+  let lo = first;
+  let hi = last;
+  for (let i = 0; i < DEF_ANCHORS.length - 1; i++) {
+    const a = DEF_ANCHORS[i]!;
+    const b = DEF_ANCHORS[i + 1]!;
+    if (s >= a[0] && s <= b[0]) { lo = a; hi = b; break; }
+  }
+  const t = hi[0] === lo[0] ? 0 : (s - lo[0]) / (hi[0] - lo[0]);
+  return { stl: lerp(lo[1], hi[1], t), blk: lerp(lo[2], hi[2], t), tov: lerp(lo[3], hi[3], t) };
 }
 
 /** Computed context that can't be right (incomplete source rows). */

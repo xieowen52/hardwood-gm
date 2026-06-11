@@ -225,12 +225,16 @@ async function main(): Promise<void> {
     a.pts += pts;
     a.trb += trb;
     a.ast += ast;
-    if (get('steals') !== '' || get('blocks') !== '') {
+    // Steals/blocks weren't recorded before 1973-74 and turnovers before
+    // 1977-78 — the source stores literal 0s for those games, which would
+    // average legends into no-steal, no-turnover robots. Treat them as
+    // missing so the ingest step estimates instead.
+    if (season >= 1974 && (get('steals') !== '' || get('blocks') !== '')) {
       a.hasDef = true;
       a.stl += num('steals');
       a.blk += num('blocks');
     }
-    if (get('turnovers') !== '') {
+    if (season >= 1978 && get('turnovers') !== '') {
       a.hasTov = true;
       a.tov += num('turnovers');
     }
