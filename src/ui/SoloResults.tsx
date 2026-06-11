@@ -68,7 +68,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
       `Hardwood GM — ${mode === 'classic' ? 'Classic' : 'Hoop IQ'}`,
       `Projected record: ${season.wins}–${season.losses} (${fmt1(season.pointsFor)} for, ${fmt1(season.pointsAgainst)} against)`,
       ...rosterLines.map((l) => `${l.label}: ${l.value}`),
-      `Why: ${explanation.slice(0, 2).join(' ')}`,
+      `Why: ${explanation.slice(0, 2).map((n) => n.text).join(' ')}`,
       `Seed ${seed}`,
     ];
     setCopied(await copyText(lines.join('\n')));
@@ -82,7 +82,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
         headline: `${season.wins}–${season.losses}`,
         subtitle: `82 games vs a league-average team · ${fmt1(season.pointsFor)} ppg for, ${fmt1(season.pointsAgainst)} against`,
         lines: rosterLines,
-        extra: explanation.slice(0, 2),
+        extra: explanation.slice(0, 2).map((n) => n.text),
         footer: perfect ? 'PERFECT SEASON. 82–0. Hang the banner.' : `Seed ${seed} · hardwood-gm`,
       },
       `hardwood-gm-${season.wins}-${season.losses}-${seed}.png`,
@@ -120,44 +120,43 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
 
       <section className="results-grid">
         <div className="panel">
-          <h3>Team per game (vs league average)</h3>
-          <div className="player-table-wrap">
-      <table className="player-table">
-            <thead>
-              <tr>
-                <th className="left">Category</th>
-                <th>Your team</th>
-                <th>League avg</th>
-                <th>Edge</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(([label, ours, theirs]) => {
-                const diff = ours - theirs;
-                const inverted = label === 'Turnovers';
-                const good = inverted ? diff < 0 : diff > 0;
-                return (
-                  <tr key={label}>
-                    <td className="left">{label}</td>
-                    <td>{fmt1(ours)}</td>
-                    <td>{fmt1(theirs)}</td>
-                    <td className={good ? 'pos' : 'neg'}>
-                      {diff >= 0 ? '+' : ''}
-                      {fmt1(diff)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-      </div>
+          <h3>Team per game <span className="muted">vs league average</span></h3>
+          <div className="cat-rows">
+            {categories.map(([label, ours, theirs]) => {
+              const diff = ours - theirs;
+              const inverted = label === 'Turnovers';
+              const good = inverted ? diff < 0 : diff > 0;
+              // Bar fills from center; width scales the edge against a sane max.
+              const mag = Math.min(100, (Math.abs(diff) / Math.max(theirs * 0.4, 1)) * 100);
+              return (
+                <div key={label} className="cat-row">
+                  <span className="cat-label">{label}</span>
+                  <span className="cat-val">{fmt1(ours)}</span>
+                  <span className="cat-bar-track">
+                    <span
+                      className={`cat-bar ${good ? 'cat-bar-good' : 'cat-bar-bad'}`}
+                      style={{ width: `${mag}%` }}
+                    />
+                  </span>
+                  <span className={`cat-edge ${good ? 'pos' : 'neg'}`}>
+                    {diff >= 0 ? '+' : ''}
+                    {fmt1(diff)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="cat-foot muted">Bars show your edge over the league-average opponent.</p>
         </div>
 
         <div className="panel">
           <h3>Why</h3>
           <ul className="why-list">
-            {explanation.map((line, i) => (
-              <li key={i}>{line}</li>
+            {explanation.map((n, i) => (
+              <li key={i} className={`why-${n.tone}`}>
+                <span className="why-dot" aria-hidden />
+                {n.text}
+              </li>
             ))}
           </ul>
         </div>

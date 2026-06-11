@@ -78,7 +78,7 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
       `${summary} (best of 7, seed ${seed})`,
       `Games: ${series.games.map((g) => `${g.aPts}–${g.bPts}${g.overtimes > 0 ? ' OT' : ''}`).join(', ')}`,
       `Single-game odds: ${names[0]} ${(series.monteCarlo.aWinPct * 100).toFixed(0)}% over ${series.monteCarlo.runs} sims`,
-      `Why: ${explanation.slice(0, 2).join(' ')}`,
+      `Why: ${explanation.slice(0, 2).map((n) => n.text).join(' ')}`,
     ];
     setCopied(await copyText(lines.join('\n')));
     window.setTimeout(() => setCopied(false), 2000);
@@ -93,7 +93,7 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
         lines: POSITIONS.flatMap((pos) => [
           { label: `${pos}`, value: `${rosters[0][pos]?.name ?? '—'}  vs  ${rosters[1][pos]?.name ?? '—'}` },
         ]),
-        extra: explanation.slice(0, 2),
+        extra: explanation.slice(0, 2).map((n) => n.text),
         footer: `${names[0]} vs ${names[1]} · seed ${seed} · hardwood-gm`,
       },
       `hardwood-gm-${Math.max(...series.wins)}-${Math.min(...series.wins)}-${seed}.png`,
@@ -130,8 +130,11 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
         <div>
           <h3>Why</h3>
           <ul className="why-list">
-            {explanation.map((line, i) => (
-              <li key={i}>{line}</li>
+            {explanation.map((n, i) => (
+              <li key={i} className={`why-${n.tone}`}>
+                <span className="why-dot" aria-hidden />
+                {n.text}
+              </li>
             ))}
           </ul>
         </div>

@@ -16,7 +16,7 @@ export {
   type AssignmentOption,
   type Roster,
 } from './draft';
-export { explainSeason, explainSeries } from './explain';
+export { explainSeason, explainSeries, type WhyNote, type WhyTone } from './explain';
 export {
   averageBox,
   simulateGame,
