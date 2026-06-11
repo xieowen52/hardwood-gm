@@ -251,7 +251,6 @@ input:focus-visible {
 }
 .picker-name { color: var(--accent); font-weight: 700; }
 
-.reroll-buttons { display: flex; gap: 8px; }
 
 .draft-body {
   display: grid;
@@ -336,83 +335,6 @@ input:focus-visible {
 }
 .build-meter .muted { font-size: 0.9em; }
 
-/* ── Wheel ────────────────────────────────────────────────────────────── */
-.wheel {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 240px;
-  background:
-    radial-gradient(600px 200px at 50% 0%, rgba(245, 166, 35, 0.08), transparent 70%),
-    var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  font-size: clamp(1.3rem, 3.4vw, 1.9rem);
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  overflow: hidden;
-}
-.wheel-spinning .wheel-label { opacity: 0.7; }
-
-/* Decorative spinner ring: whirls while the wheel cycles, eases to a stop. */
-.wheel-ring {
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  border: 4px solid transparent;
-  border-top-color: var(--accent);
-  border-right-color: rgba(245, 166, 35, 0.35);
-  opacity: 0.6;
-  pointer-events: none;
-}
-.wheel-spinning .wheel-ring {
-  animation: ring-spin 0.55s linear infinite;
-}
-.wheel-settled .wheel-ring {
-  animation: ring-stop 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  border-color: var(--accent);
-  opacity: 0.25;
-}
-@keyframes ring-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes ring-stop {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(200deg) scale(1.35); opacity: 0.12; }
-}
-.wheel-settled {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.35), 0 0 42px rgba(245, 166, 35, 0.12) inset;
-  animation: settle-pop 0.4s ease;
-}
-@keyframes settle-pop {
-  0% { transform: scale(0.96); }
-  55% { transform: scale(1.02); }
-  100% { transform: scale(1); }
-}
-
-.confetti {
-  position: absolute;
-  top: -12px;
-  width: 8px;
-  height: 13px;
-  border-radius: 2px;
-  pointer-events: none;
-  animation-name: confetti-fall;
-  animation-timing-function: ease-in;
-  animation-fill-mode: forwards;
-}
-@keyframes confetti-fall {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  100% {
-    transform: translate(var(--drift, 0px), 280px) rotate(var(--spin, 540deg));
-    opacity: 0;
-  }
-}
-
 .swatch {
   display: inline-block;
   width: 22px;
@@ -421,19 +343,79 @@ input:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.25);
   flex: none;
 }
-.swatch-lg { width: 44px; height: 44px; border-radius: 12px; }
 
-.combo-banner {
+/* ── Combo reveal: two independent Era × Team boxes ───────────────────── */
+.combo-reveal { margin-bottom: 16px; }
+.combo-boxes {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.combo-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.combo-x {
+  align-self: center;
+  font-size: 1.4rem;
+  color: var(--muted);
+  font-weight: 700;
+  padding-top: 18px;
+}
+
+.spin-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 96px;
+  justify-content: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(400px 120px at 50% 0%, rgba(245, 166, 35, 0.07), transparent 70%),
+    var(--bg-raised);
+  overflow: hidden;
+}
+.spin-box-kind {
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.spin-box-value {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  font-size: 1.15rem;
+  gap: 10px;
+  font-size: clamp(1.5rem, 3.6vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: 0.3px;
 }
+.spin-box-value .swatch { width: 28px; height: 28px; border-radius: 8px; }
+.spin-box-spinning .spin-box-value { opacity: 0.65; filter: blur(0.4px); }
+.spin-box-settled {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.3), 0 0 36px rgba(245, 166, 35, 0.1) inset;
+  animation: box-pop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes box-pop {
+  0% { transform: translateY(4px) scale(0.97); }
+  60% { transform: translateY(0) scale(1.015); }
+  100% { transform: scale(1); }
+}
+
+.reroll-mini {
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+.combo-hint { margin: 12px 2px 0; }
+.header-spacer { width: 120px; }
 
 .notice {
   background: rgba(217, 160, 60, 0.12);
@@ -491,6 +473,31 @@ input:focus-visible {
   font-size: 0.9rem;
 }
 
+/* Segmented Raw | Era-adj toggle. */
+.seg-toggle {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+.seg-option {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 4px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg-option:hover { color: var(--text); }
+.seg-active {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #1c1306;
+  font-weight: 700;
+}
+
 /* ── Tables ───────────────────────────────────────────────────────────── */
 .player-table-wrap { overflow-x: auto; }
 
@@ -502,10 +509,16 @@ input:focus-visible {
 }
 .player-table th,
 .player-table td {
-  padding: 7px 9px;
+  padding: 8px 10px;
   text-align: right;
-  border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+.player-table thead th {
+  border-bottom: 2px solid var(--border-strong);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
 }
 .player-table th {
   color: var(--muted);
@@ -517,10 +530,16 @@ input:focus-visible {
 .player-table th.sortable { cursor: pointer; user-select: none; }
 .player-table th.sortable:hover { color: var(--text); }
 .player-table .left { text-align: left; }
+/* Faint per-row separator + a divider after the name/seasons block so the
+   columns of numbers don't blur together. */
+.player-table tbody td { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.player-table tbody td:nth-child(3) { border-right: 1px solid var(--border); padding-right: 16px; }
+.player-table tbody td:nth-child(4) { padding-left: 14px; }
+.player-table tbody td.strong { color: var(--text); }
 
 .player-row { cursor: pointer; }
-.player-row:hover { background: var(--bg-hover); }
-.player-row-selected { background: var(--bg-hover); }
+.player-row:hover td { background: var(--bg-hover); }
+.player-row-selected td { background: var(--bg-hover); }
 
 .assign-row td { background: rgba(245, 166, 35, 0.06); }
 .assign-bar {
@@ -570,11 +589,59 @@ input:focus-visible {
 
 .why-list {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
+.why-list li {
+  position: relative;
+  padding: 8px 10px 8px 30px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  background: rgba(255, 255, 255, 0.025);
+  border-left: 3px solid var(--border-strong);
+}
+.why-dot {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.why-good { border-left-color: var(--good); }
+.why-good .why-dot { background: var(--good); }
+.why-bad { border-left-color: var(--bad); }
+.why-bad .why-dot { background: var(--bad); }
+.why-neutral { border-left-color: var(--accent); }
+.why-neutral .why-dot { background: var(--accent); }
+
+/* Category breakdown with center-anchored edge bars. */
+.cat-rows { display: flex; flex-direction: column; gap: 7px; }
+.cat-row {
+  display: grid;
+  grid-template-columns: 84px 48px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem;
+}
+.cat-label { color: var(--muted); }
+.cat-val { text-align: right; font-weight: 600; }
+.cat-bar-track {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cat-bar { display: block; height: 100%; border-radius: 999px; }
+.cat-bar-good { background: linear-gradient(90deg, rgba(76, 195, 138, 0.5), var(--good)); }
+.cat-bar-bad { background: linear-gradient(90deg, rgba(229, 83, 75, 0.5), var(--bad)); }
+.cat-edge { text-align: right; font-weight: 700; }
+.cat-foot { font-size: 0.8rem; margin: 10px 0 0; }
 
 .results-actions {
   display: flex;
