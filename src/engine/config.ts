@@ -71,7 +71,7 @@ export const FIT = {
    */
   shotQualityBaselinePts: 16.5,
   shotQualitySlope: 0.55,
-  shotQualityMax: 0.135,
+  shotQualityMax: 0.15,
   /** Team turnover rate is pulled toward this league-typical center... */
   tovCenter: 0.13,
   /** ...keeping this fraction of the raw spread (stars handle more, but load is shared). */
@@ -117,6 +117,15 @@ export const POSSESSION = {
   assistShare: 0.62,
   /** Offensive rebound strength fraction of total rebounding (rest is defensive). */
   orbShare: 0.29,
+  /** League-average team rebounds per game (5 players × 6.6 per-36 × 48/36). */
+  leagueRebPerGame: 44,
+  /**
+   * Fraction of a team's rebounding edge over league average that counts.
+   * Rebounds are partly positional/situational — five elite rebounders don't
+   * stack linearly — so the spread is damped to keep second-chance points
+   * from dominating shot-making.
+   */
+  rebSpreadKept: 0.6,
   /** Putback attempt after an offensive rebound gets this make% bonus (2pt). */
   putbackBonus: 0.05,
   /** Per-game team form noise (uniform +/- this, applied to make probabilities). */

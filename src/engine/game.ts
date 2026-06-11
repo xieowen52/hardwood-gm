@@ -199,9 +199,9 @@ function simulatePossession(off: SideState, def: SideState, rng: Rng): void {
     return; // simplification: missed final FTs are treated as dead balls
   }
 
-  // 4. The shot, with up to one offensive-rebound putback sequence.
+  // 4. The shot, with at most one offensive-rebound putback.
   let secondChance = false;
-  for (let chance = 0; chance < 3; chance++) {
+  for (let chance = 0; chance < 2; chance++) {
     const result = attemptShot(off, def, shooterIdx, rng, {
       putback: secondChance,
       secondChance,

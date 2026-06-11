@@ -206,7 +206,11 @@ export function buildTeam(
   // toward the league-typical center, keeping only part of the spread.
   const rawTovPerPoss = (teamTovPer36 * minutesScale) / POSSESSION.basePossessions;
   const tovPerPoss = FIT.tovCenter + (rawTovPerPoss - FIT.tovCenter) * FIT.tovSpreadKept;
-  const totalReb = players.reduce((s, p) => s + p.reb, 0) * minutesScale;
+  // Rebounding edge over league average is damped (see config.rebSpreadKept).
+  const rawReb = players.reduce((s, p) => s + p.reb, 0) * minutesScale;
+  const totalReb =
+    POSSESSION.leagueRebPerGame +
+    (rawReb - POSSESSION.leagueRebPerGame) * POSSESSION.rebSpreadKept;
   const stealsPerGame = slots.reduce((s, x) => s + x.norm.stl, 0) * minutesScale;
 
   return {
