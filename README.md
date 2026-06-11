@@ -69,7 +69,14 @@ the box. To use real data:
 
    It writes `src/data/generated/players.json`: player entries grouped by
    franchise + decade (per-game averages over those seasons only) plus per-season
-   league context aggregated from the same rows.
+   league context aggregated from the same rows. Data-quality guardrails are
+   built in: spans ending before 1971 are dropped (game logs are incomplete),
+   implausible league context falls back to published averages, and recorded
+   steals/blocks/turnovers are trusted per season only when they reach 85% of
+   the published league rate — earlier seasons get position/volume estimates
+   instead of literal zeros. The curated 1960s pools are blended back in so the
+   classic eras stay playable. (A Kaggle game-log pipeline,
+   `scripts/aggregate-kaggle.ts`, streams per-game box scores into this format.)
 3. Restart the dev server. The app validates the generated file at startup and
    falls back to sample data (with a console warning) if it's unusable.
 

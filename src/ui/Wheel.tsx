@@ -63,6 +63,7 @@ export function Wheel({ target, onSettled }: WheelProps) {
   const [primary, secondary] = comboColors(shown);
   return (
     <div className={`wheel ${settled ? 'wheel-settled' : 'wheel-spinning'}`} aria-live="polite">
+      <span className="wheel-ring" aria-hidden />
       {settled &&
         confetti.map((p, i) => (
           <span

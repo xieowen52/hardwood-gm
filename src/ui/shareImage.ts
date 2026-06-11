@@ -10,11 +10,13 @@ export interface ShareLine {
 
 export interface ShareCardData {
   title: string;
-  /** The big number, e.g. "74–8" or "Ava 4-2 Ben". */
+  /** The big number, e.g. "74–8" or "Ava 4–2 Ben". */
   headline: string;
   subtitle: string;
   /** Roster lines: label = slot/team, value = player. */
   lines: ShareLine[];
+  /** Argument-starters: top "why" bullets rendered under the roster. */
+  extra?: string[];
   footer: string;
 }
 
@@ -22,7 +24,8 @@ export function downloadShareImage(data: ShareCardData, filename = 'hardwood-gm-
   const W = 900;
   const headerH = 240;
   const lineH = 42;
-  const H = headerH + data.lines.length * lineH + 110;
+  const extra = (data.extra ?? []).map((t) => (t.length > 92 ? `${t.slice(0, 89)}…` : t));
+  const H = headerH + data.lines.length * lineH + extra.length * 30 + (extra.length > 0 ? 26 : 0) + 110;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -66,6 +69,17 @@ export function downloadShareImage(data: ShareCardData, filename = 'hardwood-gm-
     c.font = '400 22px -apple-system, "Segoe UI", Roboto, sans-serif';
     c.fillText(line.value, 150, y - 2);
     y += lineH;
+  }
+
+  // "Why" bullets.
+  if (extra.length > 0) {
+    y += 14;
+    c.fillStyle = '#cfd8df';
+    c.font = 'italic 400 19px -apple-system, "Segoe UI", Roboto, sans-serif';
+    for (const line of extra) {
+      c.fillText(`• ${line}`, 48, y);
+      y += 30;
+    }
   }
 
   // Footer.

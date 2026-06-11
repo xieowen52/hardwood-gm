@@ -258,14 +258,23 @@ input:focus-visible {
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
 }
-@media (max-width: 860px) {
-  .draft-body { grid-template-columns: 1fr; }
-}
 
 .draft-aside {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Narrow screens: roster cards move ABOVE the pool (you should never draft
+   blind to your own roster) and the page itself never scrolls sideways. */
+@media (max-width: 860px) {
+  .draft-body { display: flex; flex-direction: column; }
+  .draft-aside {
+    order: -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .draft-aside .roster-card { flex: 1 1 250px; }
 }
 
 .roster-card {
@@ -312,6 +321,20 @@ input:focus-visible {
 }
 .slot-player { min-width: 0; }
 .swap-hint { font-size: 0.8rem; margin: 8px 0 0; }
+.swap-icon { color: var(--muted); font-size: 0.8rem; margin-left: 6px; }
+.roster-slot-swappable:hover .swap-icon { color: var(--accent); }
+
+.build-meter {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.build-meter .muted { font-size: 0.9em; }
 
 /* ── Wheel ────────────────────────────────────────────────────────────── */
 .wheel {
@@ -332,6 +355,34 @@ input:focus-visible {
   overflow: hidden;
 }
 .wheel-spinning .wheel-label { opacity: 0.7; }
+
+/* Decorative spinner ring: whirls while the wheel cycles, eases to a stop. */
+.wheel-ring {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: var(--accent);
+  border-right-color: rgba(245, 166, 35, 0.35);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.wheel-spinning .wheel-ring {
+  animation: ring-spin 0.55s linear infinite;
+}
+.wheel-settled .wheel-ring {
+  animation: ring-stop 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border-color: var(--accent);
+  opacity: 0.25;
+}
+@keyframes ring-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ring-stop {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(200deg) scale(1.35); opacity: 0.12; }
+}
 .wheel-settled {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.35), 0 0 42px rgba(245, 166, 35, 0.12) inset;
@@ -510,6 +561,9 @@ input:focus-visible {
   gap: 18px;
   margin: 18px 0;
 }
+/* Grid items default to min-width:auto, which blocks tables from shrinking
+   and forces the whole page to scroll sideways on phones. */
+.results-grid > * { min-width: 0; }
 @media (max-width: 860px) {
   .results-grid { grid-template-columns: 1fr; }
 }

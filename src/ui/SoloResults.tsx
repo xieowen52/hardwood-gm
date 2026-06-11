@@ -47,7 +47,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
     savedRef.current = true;
     addHistory({
       mode,
-      summary: `${season.wins}-${season.losses}`,
+      summary: `${season.wins}–${season.losses}`,
       rosterNames: rosterPlayers(roster).map((p) => p.name),
       seed,
       soloRosterIds: POSITIONS.map((pos) => roster[pos]?.id ?? ''),
@@ -66,7 +66,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
   const copy = async () => {
     const lines = [
       `Hardwood GM — ${mode === 'classic' ? 'Classic' : 'Hoop IQ'}`,
-      `Projected record: ${season.wins}-${season.losses} (${fmt1(season.pointsFor)} for, ${fmt1(season.pointsAgainst)} against)`,
+      `Projected record: ${season.wins}–${season.losses} (${fmt1(season.pointsFor)} for, ${fmt1(season.pointsAgainst)} against)`,
       ...rosterLines.map((l) => `${l.label}: ${l.value}`),
       `Why: ${explanation.slice(0, 2).join(' ')}`,
       `Seed ${seed}`,
@@ -76,13 +76,17 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
   };
 
   const shareImage = () => {
-    downloadShareImage({
-      title: `HARDWOOD GM · ${mode === 'classic' ? 'CLASSIC' : 'HOOP IQ'}`,
-      headline: `${season.wins}–${season.losses}`,
-      subtitle: `82 games vs a league-average team · ${fmt1(season.pointsFor)} ppg for, ${fmt1(season.pointsAgainst)} against`,
-      lines: rosterLines,
-      footer: perfect ? 'PERFECT SEASON. 82-0. Hang the banner.' : `Seed ${seed} · hardwood-gm`,
-    });
+    downloadShareImage(
+      {
+        title: `HARDWOOD GM · ${mode === 'classic' ? 'CLASSIC' : 'HOOP IQ'}`,
+        headline: `${season.wins}–${season.losses}`,
+        subtitle: `82 games vs a league-average team · ${fmt1(season.pointsFor)} ppg for, ${fmt1(season.pointsAgainst)} against`,
+        lines: rosterLines,
+        extra: explanation.slice(0, 2),
+        footer: perfect ? 'PERFECT SEASON. 82–0. Hang the banner.' : `Seed ${seed} · hardwood-gm`,
+      },
+      `hardwood-gm-${season.wins}-${season.losses}-${seed}.png`,
+    );
   };
 
   const categories = [
@@ -117,7 +121,8 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
       <section className="results-grid">
         <div className="panel">
           <h3>Team per game (vs league average)</h3>
-          <table className="player-table">
+          <div className="player-table-wrap">
+      <table className="player-table">
             <thead>
               <tr>
                 <th className="left">Category</th>
@@ -145,6 +150,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
               })}
             </tbody>
           </table>
+      </div>
         </div>
 
         <div className="panel">
@@ -158,6 +164,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
       </section>
 
       <h3>Simulated per-game averages</h3>
+      <div className="player-table-wrap">
       <table className="player-table">
         <thead>
           <tr>
@@ -179,6 +186,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
           ))}
         </tbody>
       </table>
+      </div>
 
       <footer className="results-actions">
         <button className="btn btn-primary" onClick={copy}>

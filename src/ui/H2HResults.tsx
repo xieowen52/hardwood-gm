@@ -48,7 +48,7 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
 
   const winnerName = names[series.winner];
   const loserName = names[series.winner === 0 ? 1 : 0];
-  const summary = `${winnerName} ${Math.max(...series.wins)}-${Math.min(...series.wins)} ${loserName}`;
+  const summary = `${winnerName} ${Math.max(...series.wins)}–${Math.min(...series.wins)} ${loserName}`;
 
   const savedRef = useRef(false);
   useEffect(() => {
@@ -76,7 +76,7 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
     const lines = [
       'Hardwood GM — Head-to-Head',
       `${summary} (best of 7, seed ${seed})`,
-      `Games: ${series.games.map((g) => `${g.aPts}-${g.bPts}${g.overtimes > 0 ? ' OT' : ''}`).join(', ')}`,
+      `Games: ${series.games.map((g) => `${g.aPts}–${g.bPts}${g.overtimes > 0 ? ' OT' : ''}`).join(', ')}`,
       `Single-game odds: ${names[0]} ${(series.monteCarlo.aWinPct * 100).toFixed(0)}% over ${series.monteCarlo.runs} sims`,
       `Why: ${explanation.slice(0, 2).join(' ')}`,
     ];
@@ -85,15 +85,19 @@ export function H2HResults({ names, rosters, fixedSeed, onPlayAgain, onHome }: H
   };
 
   const shareImage = () => {
-    downloadShareImage({
-      title: 'HARDWOOD GM · HEAD-TO-HEAD',
-      headline: summary,
-      subtitle: `Best of 7 · games: ${series.games.map((g) => `${g.aPts}-${g.bPts}`).join(', ')}`,
-      lines: POSITIONS.flatMap((pos) => [
-        { label: `${pos}`, value: `${rosters[0][pos]?.name ?? '—'}  vs  ${rosters[1][pos]?.name ?? '—'}` },
-      ]),
-      footer: `${names[0]} vs ${names[1]} · seed ${seed} · hardwood-gm`,
-    });
+    downloadShareImage(
+      {
+        title: 'HARDWOOD GM · HEAD-TO-HEAD',
+        headline: summary,
+        subtitle: `Best of 7 · games: ${series.games.map((g) => `${g.aPts}–${g.bPts}`).join(', ')}`,
+        lines: POSITIONS.flatMap((pos) => [
+          { label: `${pos}`, value: `${rosters[0][pos]?.name ?? '—'}  vs  ${rosters[1][pos]?.name ?? '—'}` },
+        ]),
+        extra: explanation.slice(0, 2),
+        footer: `${names[0]} vs ${names[1]} · seed ${seed} · hardwood-gm`,
+      },
+      `hardwood-gm-${Math.max(...series.wins)}-${Math.min(...series.wins)}-${seed}.png`,
+    );
   };
 
   return (
@@ -180,6 +184,7 @@ function BoxTable({ label, box }: { label: string; box: TeamBox }) {
       <h4>
         {label} — {box.pts}
       </h4>
+      <div className="player-table-wrap">
       <table className="player-table">
         <thead>
           <tr>
@@ -201,6 +206,7 @@ function BoxTable({ label, box }: { label: string; box: TeamBox }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

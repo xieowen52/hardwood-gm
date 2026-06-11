@@ -25,6 +25,7 @@ export function RosterStatsTable({ roster }: { roster: Roster }) {
           Era-adjusted (per 36, common era)
         </label>
       </div>
+      <div className="player-table-wrap">
       <table className="player-table">
         <thead>
           <tr>
@@ -84,6 +85,7 @@ export function RosterStatsTable({ roster }: { roster: Roster }) {
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
