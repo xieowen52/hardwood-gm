@@ -21,7 +21,8 @@ export function RulesModal({ onClose }: RulesModalProps) {
             <div className="rules-emoji">📊</div>
             <h3>Classic</h3>
             <p>
-              Each round the wheel draws a <strong>decade + franchise</strong> and you
+              Each round you're dealt a <strong>decade + franchise</strong> (two boxes you
+              can re-roll independently) and you
               draft one player from that pool, full stat lines on the table. Fill
               PG/SG/SF/PF/C, then the engine simulates an 82-game season and projects
               your record.
@@ -41,7 +42,7 @@ export function RulesModal({ onClose }: RulesModalProps) {
             <h3>Head-to-Head</h3>
             <p>
               Two drafters, one machine. Both pick from the <strong>same</strong>{' '}
-              wheel draw each round (shared pool, snake order), then your teams play a
+              draw each round (shared pool, snake order), then your teams play a
               possession-by-possession best-of-7 with home court 2-2-1-1-1.
             </p>
           </div>

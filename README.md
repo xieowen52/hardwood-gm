@@ -14,11 +14,12 @@ history lives in `localStorage`.
 
 ## Game modes
 
-- **Classic** — five rounds; each round the wheel draws a franchise-decade pool and
-  you draft one player (sortable, full stat lines) into an open slot (PG/SG/SF/PF/C).
-  One re-roll token per game — re-spin everything, keep the era, or keep the
-  franchise. Then the engine simulates an 82-game season against a league-average
-  opponent and explains your record.
+- **Classic** — five rounds; each round you're dealt a franchise-decade as two
+  separate boxes (an **era** and a **team**) and draft one player (sortable, full
+  stat lines, raw or era-adjusted) into an open slot (PG/SG/SF/PF/C). Two
+  independent re-roll tokens per game — one re-spins the era box, one re-spins the
+  team box, usable in the same turn. Then the engine simulates an 82-game season
+  against a league-average opponent and explains your record.
 - **Hoop IQ** — the same draft, blind: names, positions and seasons only. The
   results screen reveals what you actually took.
 - **Head-to-Head** — local pass-and-play. Both drafters pick from the *same* wheel

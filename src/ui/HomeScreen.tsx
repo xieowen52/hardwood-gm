@@ -40,7 +40,7 @@ export function HomeScreen({
         <div className="home-kicker">🏀 spin · draft · simulate</div>
         <h1 className="home-title">Hardwood GM</h1>
         <p className="home-sub">
-          The wheel hands you a decade and a franchise. You build the all-time five.
+          Each round deals you a decade and a franchise. You build the all-time five.
           The engine plays the games — possession by possession.
         </p>
         <div className="row-gap home-actions">
