@@ -4,10 +4,27 @@
  * player reveals the slot buttons; out-of-position slots are offered with
  * their penalty labeled, so the draft can never dead-end.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { DATASET } from '../data/dataset';
 import { POSITIONS, type PlayerEntry, type Position } from '../data/types';
-import { assignmentOptions, poolHasNaturalFit, type Roster } from '../engine';
+import {
+  assignmentOptions,
+  normalizePlayer,
+  poolHasNaturalFit,
+  type NormalizedPlayer,
+  type Roster,
+} from '../engine';
 import { fmt1, fmtPct, spanLabel } from './format';
+
+const ADJUSTED_KEY = 'hardwoodgm.draftAdjusted.v1';
+
+function loadAdjusted(): boolean {
+  try {
+    return localStorage.getItem(ADJUSTED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 interface PlayerTableProps {
   pool: PlayerEntry[];
@@ -29,6 +46,15 @@ const STAT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'ftPct', label: 'FT%' },
 ];
 
+const ADJUSTED_LABELS: Partial<Record<SortKey, string>> = {
+  pts: 'P/36',
+  trb: 'R/36',
+  ast: 'A/36',
+  stl: 'S/36',
+  blk: 'B/36',
+  fgPct: '2P%',
+};
+
 const SORT_LABELS: Record<SortKey, string> = {
   name: 'Name',
   pts: 'Points',
@@ -46,9 +72,37 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
   const [sortKey, setSortKey] = useState<SortKey>(showStats ? 'pts' : 'name');
   const [sortDesc, setSortDesc] = useState(showStats);
   const [posFilter, setPosFilter] = useState<Position | null>(null);
+  const [adjusted, setAdjustedState] = useState(loadAdjusted);
+  const setAdjusted = (v: boolean) => {
+    setAdjustedState(v);
+    try {
+      localStorage.setItem(ADJUSTED_KEY, v ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
 
-  const value = (p: PlayerEntry, key: SortKey): number | string =>
-    key === 'name' ? p.name : p.stats[key];
+  // Era-adjusted view: the per-36 common-era rates the engine actually uses.
+  const normById = useMemo(() => {
+    if (!showStats) return new Map<string, NormalizedPlayer>();
+    return new Map(pool.map((p) => [p.id, normalizePlayer(p, DATASET.leagueContext)]));
+  }, [pool, showStats]);
+
+  const value = (p: PlayerEntry, key: SortKey): number | string => {
+    if (key === 'name') return p.name;
+    if (adjusted) {
+      const n = normById.get(p.id);
+      if (n) {
+        switch (key) {
+          case 'fgPct': return n.p2;
+          case 'tpPct': return n.p3;
+          case 'ftPct': return n.ft;
+          default: return n[key];
+        }
+      }
+    }
+    return p.stats[key];
+  };
 
   const filtered = posFilter ? pool.filter((p) => p.positions.includes(posFilter)) : pool;
   const sorted = [...filtered].sort((a, b) => {
@@ -104,6 +158,16 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
           ))}
         </div>
         {showStats && (
+          <label className="toggle" title="Show the per-36, common-era rates the engine simulates with — the honest cross-decade comparison">
+            <input
+              type="checkbox"
+              checked={adjusted}
+              onChange={(e) => setAdjusted(e.target.checked)}
+            />
+            Era-adjusted
+          </label>
+        )}
+        {showStats && (
           <label className="sort-control">
             <span className="muted">Sort by</span>
             <select
@@ -147,7 +211,7 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
             {showStats &&
               STAT_COLUMNS.map((col) => (
                 <th key={col.key} className="sortable" onClick={() => onSort(col.key)}>
-                  {col.label}
+                  {adjusted ? (ADJUSTED_LABELS[col.key] ?? col.label) : col.label}
                   {arrow(col.key)}
                 </th>
               ))}
@@ -160,6 +224,7 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
               <PlayerRow
                 key={p.id}
                 player={p}
+                norm={adjusted ? normById.get(p.id) : undefined}
                 showStats={showStats}
                 selected={selected}
                 options={assignmentOptions(p, roster)}
@@ -176,6 +241,8 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
 
 interface PlayerRowProps {
   player: PlayerEntry;
+  /** Present when the era-adjusted view is on. */
+  norm?: NormalizedPlayer;
   showStats: boolean;
   selected: boolean;
   options: ReturnType<typeof assignmentOptions>;
@@ -183,7 +250,7 @@ interface PlayerRowProps {
   onPick: (position: Position) => void;
 }
 
-function PlayerRow({ player, showStats, selected, options, onSelect, onPick }: PlayerRowProps) {
+function PlayerRow({ player, norm, showStats, selected, options, onSelect, onPick }: PlayerRowProps) {
   const s = player.stats;
   const cols = showStats ? 11 : 3;
   return (
@@ -195,7 +262,19 @@ function PlayerRow({ player, showStats, selected, options, onSelect, onPick }: P
         <td className="left strong">{player.name}</td>
         <td className="left">{player.positions.join('/')}</td>
         <td className="left muted">{spanLabel(player)}</td>
-        {showStats && (
+        {showStats && norm && (
+          <>
+            <td>{fmt1(norm.pts)}</td>
+            <td>{fmt1(norm.trb)}</td>
+            <td>{fmt1(norm.ast)}</td>
+            <td>{fmt1(norm.stl)}</td>
+            <td>{fmt1(norm.blk)}</td>
+            <td>{fmtPct(norm.p2)}</td>
+            <td>{norm.tpa > 0.05 ? fmtPct(norm.p3) : '—'}</td>
+            <td>{fmtPct(norm.ft)}</td>
+          </>
+        )}
+        {showStats && !norm && (
           <>
             <td>{fmt1(s.pts)}</td>
             <td>{fmt1(s.trb)}</td>
