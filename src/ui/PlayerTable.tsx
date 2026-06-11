@@ -14,7 +14,7 @@ import {
   type NormalizedPlayer,
   type Roster,
 } from '../engine';
-import { fmt1, fmtPct, spanLabel } from './format';
+import { fmt1, fmtPct0, spanLabel } from './format';
 
 const ADJUSTED_KEY = 'hardwoodgm.draftAdjusted.v1';
 
@@ -158,14 +158,25 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
           ))}
         </div>
         {showStats && (
-          <label className="toggle" title="Show the per-36, common-era rates the engine simulates with — the honest cross-decade comparison">
-            <input
-              type="checkbox"
-              checked={adjusted}
-              onChange={(e) => setAdjusted(e.target.checked)}
-            />
-            Era-adjusted
-          </label>
+          <div
+            className="seg-toggle"
+            role="group"
+            aria-label="Stat basis"
+            title="Raw = source per-game averages. Era-adjusted = per-36 rates in a common era, what the engine simulates with."
+          >
+            <button
+              className={`seg-option ${!adjusted ? 'seg-active' : ''}`}
+              onClick={() => setAdjusted(false)}
+            >
+              Raw
+            </button>
+            <button
+              className={`seg-option ${adjusted ? 'seg-active' : ''}`}
+              onClick={() => setAdjusted(true)}
+            >
+              Era-adj
+            </button>
+          </div>
         )}
         {showStats && (
           <label className="sort-control">
@@ -269,9 +280,9 @@ function PlayerRow({ player, norm, showStats, selected, options, onSelect, onPic
             <td>{fmt1(norm.ast)}</td>
             <td>{fmt1(norm.stl)}</td>
             <td>{fmt1(norm.blk)}</td>
-            <td>{fmtPct(norm.p2)}</td>
-            <td>{norm.tpa > 0.05 ? fmtPct(norm.p3) : '—'}</td>
-            <td>{fmtPct(norm.ft)}</td>
+            <td>{fmtPct0(norm.p2)}</td>
+            <td>{norm.tpa > 0.05 ? fmtPct0(norm.p3) : '—'}</td>
+            <td>{fmtPct0(norm.ft)}</td>
           </>
         )}
         {showStats && !norm && (
@@ -281,9 +292,9 @@ function PlayerRow({ player, norm, showStats, selected, options, onSelect, onPic
             <td>{fmt1(s.ast)}</td>
             <td>{fmt1(s.stl)}</td>
             <td>{fmt1(s.blk)}</td>
-            <td>{fmtPct(s.fgPct)}</td>
-            <td>{s.tpa > 0 ? fmtPct(s.tpPct) : '—'}</td>
-            <td>{fmtPct(s.ftPct)}</td>
+            <td>{fmtPct0(s.fgPct)}</td>
+            <td>{s.tpa > 0 ? fmtPct0(s.tpPct) : '—'}</td>
+            <td>{fmtPct0(s.ftPct)}</td>
           </>
         )}
       </tr>
