@@ -1,6 +1,6 @@
 /** Small display formatting helpers (no game logic here). */
-import { comboDisplayName, franchiseCity, getFranchise } from '../data/franchises';
-import type { Decade, FranchiseDecadeCombo, PlayerEntry } from '../data/types';
+import { franchiseCity } from '../data/franchises';
+import type { Decade, PlayerEntry } from '../data/types';
 
 export function fmt1(v: number): string {
   return (Math.round(v * 10) / 10).toFixed(1);
@@ -16,10 +16,6 @@ export function fmtPct0(v: number): string {
   return `${Math.round(v * 100)}%`;
 }
 
-export function comboLabel(combo: FranchiseDecadeCombo): string {
-  return comboDisplayName(combo.franchiseId, combo.decade);
-}
-
 /** Just the decade, e.g. "1990s". */
 export function eraLabel(decade: Decade): string {
   return `${decade}s`;
@@ -32,16 +28,12 @@ export function teamLabel(franchiseId: string, decade: Decade): string {
   return ambiguous ? `${city} (${franchiseId})` : city;
 }
 
-export function comboColors(combo: FranchiseDecadeCombo): [string, string] {
-  return getFranchise(combo.franchiseId)?.colors ?? ['#444444', '#888888'];
-}
-
-/** "1991–1998 · 552 gp" */
+/** Season span, e.g. "1991–1998" (games played intentionally omitted). */
 export function spanLabel(p: PlayerEntry): string {
-  const span = p.from === p.to ? `${p.from}` : `${p.from}–${p.to}`;
-  return `${span} · ${p.games} gp`;
+  return p.from === p.to ? `${p.from}` : `${p.from}–${p.to}`;
 }
 
+/** Team-first combo label, e.g. "Chicago · 1990s" (reads better than "1990s Chicago"). */
 export function playerComboLabel(p: PlayerEntry): string {
-  return comboDisplayName(p.franchiseId, p.decade);
+  return `${teamLabel(p.franchiseId, p.decade)} · ${eraLabel(p.decade)}`;
 }

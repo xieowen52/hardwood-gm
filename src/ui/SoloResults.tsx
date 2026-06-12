@@ -17,7 +17,7 @@ import {
 } from '../engine';
 import { addHistory } from '../state/history';
 import { copyText } from './copy';
-import { fmt1 } from './format';
+import { fmt1, playerComboLabel } from './format';
 import { RosterStatsTable } from './RosterStatsTable';
 import { downloadShareImage } from './shareImage';
 
@@ -60,7 +60,7 @@ export function SoloResults({ mode, roster, fixedSeed, onPlayAgain, onHome }: So
 
   const rosterLines = POSITIONS.map((pos) => {
     const p = roster[pos];
-    return { label: pos, value: p ? `${p.name} (${p.decade}s, ${p.from}–${p.to})` : '—' };
+    return { label: pos, value: p ? `${p.name} — ${playerComboLabel(p)}` : '—' };
   });
 
   const copy = async () => {
