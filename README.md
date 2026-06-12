@@ -2,8 +2,12 @@
 
 A local-first, browser-based NBA draft-and-simulate game inspired by 82-0.com — but with a real possession-based simulation engine instead of a flat strength rating, built for diehard NBA fans who care about fit, eras, and the why behind the results. Spin a wheel for a decade + franchise ("1990s Chicago"), draft an all-time starting five, and watch the engine project your 82-game record or settle a head-to-head series possession by possession.
 
-> 🖼️ *Screenshots / GIF placeholder — drop captures of the wheel, draft board and
-> results screen here.*
+<img width="1207" height="746" alt="image" src="https://github.com/user-attachments/assets/b2fc8a3a-09e5-48d8-8e0e-83d9ee04dbda" />
+<img width="783" height="722" alt="image" src="https://github.com/user-attachments/assets/02a1090a-7446-45d5-aeef-565283ca1b3f" />
+<img width="792" height="729" alt="image" src="https://github.com/user-attachments/assets/b3452c87-c55a-44e3-8f71-d283b2586c02" />
+<img width="1202" height="759" alt="image" src="https://github.com/user-attachments/assets/d79ee448-c5fa-4b56-9e81-7538e85761e6" />
+<img width="840" height="756" alt="image" src="https://github.com/user-attachments/assets/e7978dca-45dc-4e8b-85a8-a7264fbc2207" />
+
 
 Everything runs client-side. No backend, no accounts, no network calls — run
 history lives in `localStorage`.
