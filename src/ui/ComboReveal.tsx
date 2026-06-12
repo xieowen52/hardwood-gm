@@ -88,7 +88,9 @@ function SpinBox({
   const [primary, secondary] = colorsFor(shownFranchise);
 
   return (
-    <div className={`spin-box ${spinning ? 'spin-box-spinning' : 'spin-box-settled'}`}>
+    <div
+      className={`spin-box spin-box-${kind} ${spinning ? 'spin-box-spinning' : 'spin-box-settled'}`}
+    >
       <span className="spin-box-kind">{kind === 'era' ? 'ERA' : 'TEAM'}</span>
       <span className="spin-box-value">
         {kind === 'team' && (
@@ -136,27 +138,7 @@ export function ComboReveal({
   return (
     <div className="combo-reveal">
       <div className="combo-boxes">
-        <div className="combo-slot">
-          <SpinBox
-            kind="era"
-            decade={combo.decade}
-            franchiseId={combo.franchiseId}
-            spinning={spinEra}
-            onLand={land}
-          />
-          <button
-            className="btn reroll-mini"
-            disabled={!canEra}
-            onClick={() => onReroll('era')}
-            title={canEra ? 'Spin a new decade (keeps the team)' : 'No era token / no alternative decade'}
-          >
-            📅 Re-roll era · {eraTokens}
-          </button>
-        </div>
-
-        <span className="combo-x">×</span>
-
-        <div className="combo-slot">
+        <div className="combo-slot combo-slot-team">
           <SpinBox
             kind="team"
             decade={combo.decade}
@@ -165,12 +147,32 @@ export function ComboReveal({
             onLand={land}
           />
           <button
-            className="btn reroll-mini"
+            className="btn reroll-mini reroll-team"
             disabled={!canTeam}
             onClick={() => onReroll('team')}
             title={canTeam ? 'Spin a new franchise (keeps the era)' : 'No team token / no alternative franchise'}
           >
             🔁 Re-roll team · {teamTokens}
+          </button>
+        </div>
+
+        <span className="combo-x">×</span>
+
+        <div className="combo-slot combo-slot-era">
+          <SpinBox
+            kind="era"
+            decade={combo.decade}
+            franchiseId={combo.franchiseId}
+            spinning={spinEra}
+            onLand={land}
+          />
+          <button
+            className="btn reroll-mini reroll-era"
+            disabled={!canEra}
+            onClick={() => onReroll('era')}
+            title={canEra ? 'Spin a new decade (keeps the team)' : 'No era token / no alternative decade'}
+          >
+            📅 Re-roll era · {eraTokens}
           </button>
         </div>
       </div>
