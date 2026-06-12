@@ -23,16 +23,16 @@ export function RosterStatsTable({ roster }: { roster: Roster }) {
           title="Raw = source per-game averages. Era-adjusted = per-36 rates in a common era."
         >
           <button
+            className={`seg-option ${adjusted ? 'seg-active' : ''}`}
+            onClick={() => setAdjusted(true)}
+          >
+            Per-36 ★
+          </button>
+          <button
             className={`seg-option ${!adjusted ? 'seg-active' : ''}`}
             onClick={() => setAdjusted(false)}
           >
             Raw
-          </button>
-          <button
-            className={`seg-option ${adjusted ? 'seg-active' : ''}`}
-            onClick={() => setAdjusted(true)}
-          >
-            Era-adj
           </button>
         </div>
       </div>

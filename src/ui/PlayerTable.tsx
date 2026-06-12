@@ -18,11 +18,13 @@ import { fmt1, fmtPct0, spanLabel } from './format';
 
 const ADJUSTED_KEY = 'hardwoodgm.draftAdjusted.v1';
 
+// Default ON: per-36 era-adjusted values are what the engine actually
+// simulates with, so they're the truest read on draft value.
 function loadAdjusted(): boolean {
   try {
-    return localStorage.getItem(ADJUSTED_KEY) === '1';
+    return localStorage.getItem(ADJUSTED_KEY) !== '0';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -158,24 +160,29 @@ export function PlayerTable({ pool, roster, showStats, onPick }: PlayerTableProp
           ))}
         </div>
         {showStats && (
-          <div
-            className="seg-toggle"
-            role="group"
-            aria-label="Stat basis"
-            title="Raw = source per-game averages. Era-adjusted = per-36 rates in a common era, what the engine simulates with."
-          >
-            <button
-              className={`seg-option ${!adjusted ? 'seg-active' : ''}`}
-              onClick={() => setAdjusted(false)}
+          <div className="basis-control">
+            <div
+              className="seg-toggle"
+              role="group"
+              aria-label="Stat basis"
+              title="Per-36 era-adjusted values are what the engine simulates with. Raw = source per-game box score, for recognition only."
             >
-              Raw
-            </button>
-            <button
-              className={`seg-option ${adjusted ? 'seg-active' : ''}`}
-              onClick={() => setAdjusted(true)}
-            >
-              Era-adj
-            </button>
+              <button
+                className={`seg-option ${adjusted ? 'seg-active' : ''}`}
+                onClick={() => setAdjusted(true)}
+              >
+                Per-36 ★
+              </button>
+              <button
+                className={`seg-option ${!adjusted ? 'seg-active' : ''}`}
+                onClick={() => setAdjusted(false)}
+              >
+                Raw
+              </button>
+            </div>
+            <span className="basis-hint muted">
+              {adjusted ? '★ what the sim uses — judge value by these' : 'historical box score'}
+            </span>
           </div>
         )}
         {showStats && (
