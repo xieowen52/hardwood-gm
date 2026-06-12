@@ -1,10 +1,6 @@
 # Hardwood GM
 
-A local-first, browser-based NBA draft-and-simulate game inspired by 82-0.com — but
-with a real possession-based simulation engine instead of a flat strength rating.
-Spin a wheel for a **decade + franchise** ("1990s Chicago"), draft an all-time
-starting five, and watch the engine project your 82-game record or settle a
-head-to-head series possession by possession.
+A local-first, browser-based NBA draft-and-simulate game inspired by 82-0.com — but with a real possession-based simulation engine instead of a flat strength rating, built for diehard NBA fans who care about fit, eras, and the why behind the results. Spin a wheel for a decade + franchise ("1990s Chicago"), draft an all-time starting five, and watch the engine project your 82-game record or settle a head-to-head series possession by possession.
 
 > 🖼️ *Screenshots / GIF placeholder — drop captures of the wheel, draft board and
 > results screen here.*
