@@ -17,6 +17,13 @@
   --bad: #e5534b;
   --warn: #d9a03c;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  /* Per-dimension accents: team = amber, era = violet. */
+  --team: #f5a623;
+  --team-soft: rgba(245, 166, 35, 0.16);
+  --era: #a855f7;
+  --era-soft: rgba(168, 85, 247, 0.16);
+  --font-display: 'Bricolage Grotesque Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -32,12 +39,11 @@ body {
 body {
   background:
     radial-gradient(1100px 500px at 80% -10%, rgba(245, 166, 35, 0.09), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(255, 120, 71, 0.07), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(168, 85, 247, 0.07), transparent 60%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
   background-attachment: fixed;
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: var(--font-body);
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -50,7 +56,9 @@ body {
 
 h1, h2, h3, h4 {
   margin: 0.4em 0;
-  line-height: 1.2;
+  line-height: 1.15;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 .muted { color: var(--muted); font-weight: normal; }
@@ -372,35 +380,39 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 96px;
+  min-height: 104px;
   justify-content: center;
-  padding: 14px 18px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
+  padding: 16px 20px;
+  border-radius: 18px;
+  border: 2px solid var(--slot-color, var(--border));
   background:
-    radial-gradient(400px 120px at 50% 0%, rgba(245, 166, 35, 0.07), transparent 70%),
+    radial-gradient(400px 120px at 50% 0%, var(--slot-soft, transparent), transparent 70%),
     var(--bg-raised);
   overflow: hidden;
 }
+/* Each dimension gets its own accent (team = amber, era = violet). */
+.spin-box-team { --slot-color: var(--team); --slot-soft: var(--team-soft); }
+.spin-box-era { --slot-color: var(--era); --slot-soft: var(--era-soft); }
 .spin-box-kind {
-  font-size: 0.72rem;
-  letter-spacing: 2px;
-  color: var(--muted);
-  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 3px;
+  color: var(--slot-color, var(--muted));
+  font-weight: 800;
+  font-family: var(--font-display);
 }
 .spin-box-value {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: clamp(1.5rem, 3.6vw, 2.1rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3.8vw, 2.2rem);
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.01em;
 }
 .spin-box-value .swatch { width: 28px; height: 28px; border-radius: 8px; }
-.spin-box-spinning .spin-box-value { opacity: 0.65; filter: blur(0.4px); }
+.spin-box-spinning .spin-box-value { opacity: 0.6; filter: blur(0.5px); }
 .spin-box-settled {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.3), 0 0 36px rgba(245, 166, 35, 0.1) inset;
+  box-shadow: 0 0 0 1px var(--slot-color), 0 0 40px var(--slot-soft) inset;
   animation: box-pop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes box-pop {
@@ -413,7 +425,12 @@ input:focus-visible {
   font-size: 0.85rem;
   padding: 7px 12px;
   white-space: nowrap;
+  font-weight: 600;
 }
+.reroll-team:not(:disabled) { border-color: var(--team); color: var(--team); }
+.reroll-team:not(:disabled):hover { background: var(--team-soft); }
+.reroll-era:not(:disabled) { border-color: var(--era); color: var(--era); }
+.reroll-era:not(:disabled):hover { background: var(--era-soft); }
 .combo-hint { margin: 12px 2px 0; }
 .header-spacer { width: 120px; }
 
@@ -497,6 +514,8 @@ input:focus-visible {
   color: #1c1306;
   font-weight: 700;
 }
+.basis-control { display: flex; align-items: center; gap: 10px; }
+.basis-hint { font-size: 0.8rem; }
 
 /* ── Tables ───────────────────────────────────────────────────────────── */
 .player-table-wrap { overflow-x: auto; }
@@ -553,9 +572,11 @@ input:focus-visible {
 /* ── Results ──────────────────────────────────────────────────────────── */
 .results-header { text-align: center; padding: 16px 0 6px; }
 .record {
+  font-family: var(--font-display);
   font-size: clamp(3rem, 9vw, 4.6rem);
   font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   background: linear-gradient(135deg, #ffd479 10%, var(--accent) 45%, var(--accent-2) 90%);
   -webkit-background-clip: text;
